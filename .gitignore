@@ -1,3 +1,4 @@
 certs/
 .swp
 *.swp
+hub/hub.egg-info
