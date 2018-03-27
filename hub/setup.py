@@ -24,7 +24,7 @@ setup(name='hub',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      install_requires=['cornice', 'waitress'],
+      install_requires=['cornice', 'cornice-swagger', 'colander', 'waitress'],
       entry_points="""\
       [paste.app_factory]
       main=hub:main

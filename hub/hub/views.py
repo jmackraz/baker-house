@@ -9,8 +9,10 @@ import colander
 from cornice import Service
 from cornice.resource import resource
 from cornice.validators import colander_body_validator
+from cornice.service import get_services
 
-from cornice.validators import extract_cstruct
+
+from cornice_swagger import CorniceSwagger
 
 log = logging.getLogger(__name__)
 
@@ -84,12 +86,13 @@ class ReceiverControl:
         self.request = request
 
     def get(self):
+        """get receiver state"""
         log.debug("get_receiver_ctl")
         log.debug("_last_modify_time: %s", _last_modify_time())
         return _CONTROL
 
     def put(self):
-        """control recevier"""
+        """control receiver"""
         log.debug("put_receiver_ctl")
 
         knobs = self.request.validated
@@ -98,3 +101,16 @@ class ReceiverControl:
         log.debug("_last_modify_time: %s", _last_modify_time())
         return _CONTROL
 
+
+# Create a service to serve our OpenAPI spec
+swagger = Service(name='OpenAPI',
+                  path='/__api__',
+                  description="OpenAPI documentation")
+
+
+@swagger.get()
+def openAPI_spec(request):
+    doc = CorniceSwagger(get_services())
+    doc.summary_docstrings = True
+    my_spec = doc.generate('MyAPI', '1.0.0')
+    return my_spec
