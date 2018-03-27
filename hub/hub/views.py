@@ -16,7 +16,7 @@ from cornice_swagger import CorniceSwagger
 
 log = logging.getLogger(__name__)
 
-hello = Service(name='hello', path='/', description="Simplest app")
+hello = Service(name='hello', path='/hello', description="Simplest app")
 
 @hello.get()
 def get_info(request):
