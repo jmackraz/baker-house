@@ -1,7 +1,8 @@
 """ Cornice services.
 """
 import logging
-import datetime
+from datetime import datetime
+import locale
 
 import colander
 
@@ -20,7 +21,6 @@ def get_info(request):
     """Returns Hello in JSON."""
     return  {'message': 'Baker Home REST API'}
 
-
 devices = Service(name='devices', path='/devices', description="Discovery")
 
 @devices.get()
@@ -35,23 +35,26 @@ def get_receiver(request):
     log.debug("get_receiver")
     return {'name': 'family room receiver',
             'model': 'Integra blah blah',
-            'control': {'input': 'directv', 'volume': 40}
+            'control': _CONTROL
             }
 
+    
+_CONTROL={'input': 'directv', 'volume': 40, 'last-modify': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')}
 
-_CONTROL={'input': 'directv', 'volume': 40}
-
-# don't blow out the volume
-VOLUME_LEVEL_CAP=50
 
 # ZZZ: use this in a last-modified response header,
 # so iot can selectively update the device shadow
 #
-_last_modify_time = datetime.utc()
 def _update_last_modify_time():
-    global _last_modify_time
-    _last_modify_time = datetime.utc()
+    datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+    _CONTROL['last-modify'] = datestring
 
+def _last_modify_time():
+    return _CONTROL['last-modify']
+
+
+# don't blow out the volume
+VOLUME_LEVEL_CAP=50
 
 def _update_receiver( knobs ):
     """adjust the receiver by remote control"""
@@ -74,7 +77,7 @@ class ControlSchema(colander.MappingSchema):
     input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
     volume = colander.SchemaNode(colander.Int(), missing=colander.drop)
 
-@resource(accept="text/json", path='/receiver/control', schema=ControlSchema(), validators=(colander_body_validator,) )
+@resource(accept="text/json", path='/receiver/control', schema=ControlSchema(), validators=(colander_body_validator,), description="audio controls" )
 class ReceiverControl:
     def __init__(self, request, context = None):
         #log.debug("ReceiverControl init()")
@@ -82,6 +85,7 @@ class ReceiverControl:
 
     def get(self):
         log.debug("get_receiver_ctl")
+        log.debug("_last_modify_time: %s", _last_modify_time())
         return _CONTROL
 
     def put(self):
@@ -91,5 +95,6 @@ class ReceiverControl:
         knobs = self.request.validated
         _update_receiver(knobs)
 
+        log.debug("_last_modify_time: %s", _last_modify_time())
         return _CONTROL
 
