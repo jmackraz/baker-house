@@ -5,7 +5,7 @@ Baker House Project
 Status
 ------
 
-Doesn't work yet.
+Doesn't work yet.  All the pieces but the real Alexa skill have been proven out.
 
 Introduction
 ------------
@@ -53,9 +53,13 @@ house_lambda.py
   with the device in my home via the AWS IoT APIs,
   by updating the device shadow corresponding to my home hub state.
 
+  **STATUS:** It's just a demo lambda at this time that tries out AWS IoT 'publish'
+
 update_lambda.sh
   Shell script that updates the local copy of house_lambda.py into the cloud Lambda,
   by creating a zip file and uploading it using the AWS CLI.
+
+  **STATUS:** Working
 
 house_iot.py
   This runs in the house, and connects as a client to AWS IoT. It receives 
@@ -64,11 +68,21 @@ house_iot.py
 
   It interacts with the audio and other devices in the house by the 'hub' service REST API.
 
+  **STATUS:** It's just a copy of their demo client
+
 start_iot.sh
   Small shell script to start house_iot.py, passing paramters from the configuration environment variables.
+
+  **STATUS:** Working
 
 hub/
   Small RESTful service based on Pyramid and Cornice.  It uses <name here> python package to control Onkyo/Integra receivers.
 
+  **STATUS:** Working as a service, with Colander schema validation.  Omits an OpenAPI 2.0 JSON definition (that's not very useful).
+  Ready to plug in the first couple of calls to actually control my receiver.
+
 setup_environment_template.sh
   Template for setting up your configuration parameters/secrets as per the `Configuration`_ section above.
+
+  **STATUS:** Template for all configuration environment variables used at this time.
+
