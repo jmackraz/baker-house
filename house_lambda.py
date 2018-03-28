@@ -1,5 +1,9 @@
 #source code for the alexa skill lambda endpoint
 
+# THIS IS JUST A TEST LAMBDA AT THIS TIME.
+# NEED TO CONVERT IT TO A PROPER ALEXA SKILL
+# AND TO USE DEVICE SHADOWS
+
 from __future__ import print_function
 import logging
 
