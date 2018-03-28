@@ -1,9 +1,10 @@
 # update lambda function on server
 #!/bin/bash
 
-python_file="onkyo-test-lambda.py"
+python_file="house-lambda.py"
 zip_file="lambda.zip"
 lambda_name="arn:aws:lambda:us-east-1:223828777169:function:onkyo-test"
+lambda_name=$BAKERHOUSE_LAMBDA
 dry_run="--no-dry-run"
 
 echo publishing $python_file

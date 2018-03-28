@@ -2,3 +2,4 @@ certs/
 .swp
 *.swp
 hub/hub.egg-info
+setup_environment.sh
