@@ -11,27 +11,37 @@ from cornice.resource import resource
 from cornice.validators import colander_body_validator
 from cornice.service import get_services
 
-
 from cornice_swagger import CorniceSwagger
+
+from waitress import serve
 
 log = logging.getLogger(__name__)
 
-hello = Service(name='hello', path='/hello', description="Simplest app")
+# Pyramid WSGI app initialization
 
+from pyramid.config import Configurator
+
+def create_wsgi_app(**settings):
+    config = Configurator(settings=settings)
+    config.include("cornice")
+    config.include('cornice_swagger')
+    config.scan("house_hub")
+    return config.make_wsgi_app()
+
+
+hello = Service(name='hello', path='/hello', description="Simplest app")
 @hello.get()
 def get_info(request):
     """Returns Hello in JSON."""
     return  {'message': 'Baker Home REST API'}
 
 devices = Service(name='devices', path='/devices', description="Discovery")
-
 @devices.get()
 def get_devices(request):
     log.debug("get_devices")
     return {'devices': ['receiver', 'tv']}
 
 receiver = Service(name='receiver', path='/receiver', description="The one and only receiver")
-
 @receiver.get()
 def get_receiver(request):
     log.debug("get_receiver")
@@ -114,3 +124,10 @@ def openAPI_spec(request):
     doc.summary_docstrings = True
     my_spec = doc.generate('MyAPI', '1.0.0')
     return my_spec
+
+# run this baby
+if __name__ == "__main__":
+    # execute only if run as a script
+    #
+    logging.getLogger('waitress').setLevel(logging.DEBUG)
+    serve(create_wsgi_app(), listen='*:6543')
