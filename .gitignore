@@ -4,3 +4,4 @@ certs/
 hub/hub.egg-info
 setup_environment.sh
 *.pyc
+tmp_lambda.zip

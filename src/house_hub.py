@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """ Cornice services.
 """
 import logging
