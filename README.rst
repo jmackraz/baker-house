@@ -39,7 +39,7 @@ Configuration
 -------------
 Configuration is done via environment variables.  The recommended practice:
 
-#. Copy setup_environment_template.sh to setup_environment.sh
+#. Copy the file scripts/setup_environment_template.sh to the file scripts/setup_environment.sh
 #. Confirm that it is ignored by git, that is, it won't be checked in ever
 #. Fill the values with your configuration secrets
 #. Add these values to your environment::
@@ -87,5 +87,5 @@ house_hub.py
 setup_environment_template.sh
   Template for setting up your configuration parameters/secrets as per the `Configuration`_ section above.
 
-  **STATUS:** Template for all configuration environment variables used at this time
+  **STATUS:** Template for all configuration environment variables used at this time
 
