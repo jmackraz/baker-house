@@ -1,0 +1,16 @@
+# modules required.
+# install (in a virtualenv): pip install -r REQUIREMENT.txt
+#
+# hub REST service
+pyramid
+cornice
+cornice_swagger
+colander
+waitress
+
+# command line AWS tools
+awscli
+requests
+
+# AWS IoT
+AWSIoTPythonSDK

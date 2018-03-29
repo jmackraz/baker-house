@@ -26,9 +26,13 @@ There is a lot of Alexa and IoT setup that is not yet documented here.
 
 The hub service (in the ./hub directory) is a pyramid app but unlike the cookiecutter example, it's self-contained in a single file.
 
-There is not yet an installer or REQUIREMENTS file that will set up your virtual environment for the hub server
-(pyramid, cornice, colander, waitress, etc.) the AWS IoT
-client (AWSIoTPythonSDK) and the utility scripts (aws-boto3).
+Installation
+------------
+
+#. Check out this repository
+#. (Within a virtual env) install dependencies::
+
+    pip install -r REQUIREMENTS.txt
 
 
 Configuration
@@ -83,5 +87,5 @@ house_hub.py
 setup_environment_template.sh
   Template for setting up your configuration parameters/secrets as per the `Configuration`_ section above.
 
-  **STATUS:** Template for all configuration environment variables used at this time.
+  **STATUS:** Template for all configuration environment variables used at this time
 
