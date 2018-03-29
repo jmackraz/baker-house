@@ -24,15 +24,12 @@ Alexa Skill -> Lambda -> AWS IoT (device shadow) -> HOUSE FIREWALL -> IoT Python
 
 There is a lot of Alexa and IoT setup that is not yet documented here.
 
-The hub service (in the ./hub directory) is a pyramid app (because I'm familiar) and you have to install it as per Pyramid cookiecutter instructions.  Specfically:
+The hub service (in the ./hub directory) is a pyramid app but unlike the cookiecutter example, it's self-contained in a single file.
 
-#. Create a virtualenv
-#. Within that env, cd to hub and invoke::
+There is not yet an installer or REQUIREMENTS file that will set up your virtual environment for the hub server
+(pyramid, cornice, colander, waitress, etc.) the AWS IoT
+client (AWSIoTPythonSDK) and the utility scripts (aws-boto3).
 
-    pip install -e .
-#. Start the waitress server with auto-reload of edited python files::
-
-    pserver --reload hub.ini
 
 Configuration
 -------------
@@ -75,10 +72,12 @@ start_iot.sh
 
   **STATUS:** Working
 
-hub/
+house_hub.py
   Small RESTful service based on Pyramid and Cornice.  It uses <name here> python package to control Onkyo/Integra receivers.
 
-  **STATUS:** Working as a service, with Colander schema validation.  Omits an OpenAPI 2.0 JSON definition (that's not very useful).
+  Start the service (currently hardcoded to waitress) by executing this file as a script.
+
+  **STATUS:** Working as a service, with Colander schema validation.  Emits an OpenAPI 2.0 JSON definition (that's not very useful).
   Ready to plug in the first couple of calls to actually control my receiver.
 
 setup_environment_template.sh
