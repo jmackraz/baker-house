@@ -69,12 +69,9 @@ house_iot.py
 
   It interacts with the audio and other devices in the house by the 'hub' service REST API.
 
-  **STATUS:** It's just a copy of their demo client
+  Start the client by executing this file as a script.
 
-start_iot.sh
-  Small shell script to start house_iot.py, passing paramters from the configuration environment variables.
-
-  **STATUS:** Working
+  **STATUS:** Simplified 'subscribe' client, stub for polling source of truth
 
 house_hub.py
   Small RESTful service based on Pyramid and Cornice.  It uses <name here> python package to control Onkyo/Integra receivers.
