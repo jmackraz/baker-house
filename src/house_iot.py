@@ -10,28 +10,49 @@ from os import environ
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
 
-# Custom MQTT message callback
-def customCallback(client, userdata, message):
-    log.info("message received from topic %s: %s", message.topic, message.payload)
-
-
 # config from environment
 host = environ["BAKERHOUSE_ENDPOINT"]
 certificatePath = environ["BAKERHOUSE_MYCERT_FILE"]
 rootCAPath = environ["BAKERHOUSE_ROOTCERT_FILE"]
 privateKeyPath = environ["BAKERHOUSE_PRIVATEKEY_FILE"]
-useWebsocket = False
-poll_hub_interval = 10000
+thingName = environ["BAKERHOUSE_IOT_THING"]
 clientId = "basicPubSub"
 topic = "sdk/test/Python"
+poll_hub_interval = 10000
+
+useWebsocket = False
+shadowTopicSubscribe = True
+
+# system mqtt topics used by device shadow (diagnostics/education)
+#
+device_shadow_topics = [
+    "$aws/things/{}/shadow/update/accepted",
+    "$aws/things/{}/shadow/update/rejected",
+    "$aws/things/{}/shadow/update/delta",
+    "$aws/things/{}/shadow/get/accepted",
+    "$aws/things/{}/shadow/get/rejected",
+    "$aws/things/{}/shadow/delete/accepted",
+    "$aws/things/{}/shadow/delete/rejected",
+    "$aws/things/{}/shadow/update/documents",
+    ]
 
 # logging
 log = logging.getLogger("house_iot")
 log.setLevel(logging.DEBUG)
 streamHandler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 streamHandler.setFormatter(formatter)
 log.addHandler(streamHandler)
+
+### ###
+
+# Custom MQTT message callback
+def customCallback(client, userdata, message):
+    parsed = json.loads(message.payload)
+    pretty_json = json.dumps(parsed, indent=2, sort_keys=True)
+    log.info("message received from topic %s: %s", message.topic, pretty_json)
+
 
 iotclient = None
 if useWebsocket:
@@ -52,6 +73,12 @@ iotclient.configureMQTTOperationTimeout(5)  # 5 sec
 
 iotclient.connect()
 iotclient.subscribe(topic, 1, customCallback)
+
+if shadowTopicSubscribe:
+    for topic in device_shadow_topics:
+        iotclient.subscribe(topic.format(thingName), 1, customCallback)
+        
+
 log.info("connection made")
 
 # poll the source of truth

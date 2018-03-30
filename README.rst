@@ -39,7 +39,7 @@ Configuration
 -------------
 Configuration is done via environment variables.  The recommended practice:
 
-#. Copy the file scripts/setup_environment_template.sh to the file scripts/setup_environment.sh
+#. Copy the file scripts/setup_environment_template.sh to the file setup_environment.sh
 #. Confirm that it is ignored by git, that is, it won't be checked in ever
 #. Fill the values with your configuration secrets
 #. Add these values to your environment::
