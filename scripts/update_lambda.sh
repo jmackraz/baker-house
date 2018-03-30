@@ -3,7 +3,7 @@
 
 DIR="$(dirname $0)"
 python_file="$DIR/../src/house_lambda.py"
-zip_file="tmp_lambda.zip"
+zip_file="/tmp/tmp_lambda.zip"
 lambda_name=$BAKERHOUSE_LAMBDA
 
 #dry_run="--no-dry-run"
