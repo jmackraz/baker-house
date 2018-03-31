@@ -7,7 +7,8 @@ import argparse
 import json
 from os import environ
 
-from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+#from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
 
 
 # config from environment
@@ -21,7 +22,7 @@ topic = "sdk/test/Python"
 poll_hub_interval = 10000
 
 useWebsocket = False
-shadowTopicSubscribe = True
+shadowTopicSubscribe = False
 
 # system mqtt topics used by device shadow (diagnostics/education)
 #
@@ -48,35 +49,61 @@ log.addHandler(streamHandler)
 ### ###
 
 # Custom MQTT message callback
-def customCallback(client, userdata, message):
+def subscribeCallback(client, userdata, message):
     parsed = json.loads(message.payload)
     pretty_json = json.dumps(parsed, indent=2, sort_keys=True)
     log.info("message received from topic %s: %s", message.topic, pretty_json)
 
 
-iotclient = None
+shadow_client = None
 if useWebsocket:
-    iotclient = AWSIoTMQTTClient(clientId, useWebsocket=True)
-    iotclient.configureEndpoint(host, 443)
-    iotclient.configureCredentials(rootCAPath)
+    #mqtt_client = AWSIoTMQTTClient(clientId, useWebsocket=True)
+    shadow_client = AWSIoTMQTTShadowClient(clientId, useWebsocket=True)
+    shadow_client.configureEndpoint(host, 443)
+    shadow_client.configureCredentials(rootCAPath)
 else:
-    iotclient = AWSIoTMQTTClient(clientId)
-    iotclient.configureEndpoint(host, 8883)
-    iotclient.configureCredentials(rootCAPath, privateKeyPath, certificatePath)
+    #mqtt_client = AWSIoTMQTTClient(clientId)
+    shadow_client = AWSIoTMQTTShadowClient(clientId)
+    shadow_client.configureEndpoint(host, 8883)
+    shadow_client.configureCredentials(rootCAPath, privateKeyPath, certificatePath)
 
 # connection configuration from AWS sample
-iotclient.configureAutoReconnectBackoffTime(1, 32, 20)
-iotclient.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
-iotclient.configureDrainingFrequency(2)  # Draining: 2 Hz
-iotclient.configureConnectDisconnectTimeout(10)  # 10 sec
-iotclient.configureMQTTOperationTimeout(5)  # 5 sec
+shadow_client.configureAutoReconnectBackoffTime(1, 32, 20)
+shadow_client.configureConnectDisconnectTimeout(10)  # 10 sec
+shadow_client.configureMQTTOperationTimeout(5)  # 5 sec
 
-iotclient.connect()
-iotclient.subscribe(topic, 1, customCallback)
+#pubish stuff
+#shadow_client.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
+#shadow_client.configureDrainingFrequency(2)  # Draining: 2 Hz
+
+shadow_client.connect()
+
+class ShadowCallback:
+    def __init__(self):
+        pass
+
+    def delta(self, payload_json, responseStatus, token):
+        payload = json.loads(payload_json)
+        #pretty_json = json.dumps(payload['state'], indent=2, sort_keys=True)
+        pretty_json = json.dumps(payload, indent=2, sort_keys=True)
+        log.info("Received a delta message: %s", pretty_json)
+
+        #newPayload = '{"state":{"reported":' + deltaMessage + '}}'
+        #self.deviceShadowInstance.shadowUpdate(newPayload, None, 5)
+
+
+shadow_handler = shadow_client.createShadowHandlerWithName(thingName, True)
+shadow_callback = ShadowCallback()
+shadow_handler.shadowRegisterDeltaCallback(shadow_callback.delta)
+
+
+mqtt_client = shadow_client.getMQTTConnection()
+mqtt_client.subscribe(topic, 1, subscribeCallback)
+
 
 if shadowTopicSubscribe:
     for topic in device_shadow_topics:
-        iotclient.subscribe(topic.format(thingName), 1, customCallback)
+        mqtt_client.subscribe(topic.format(thingName), 1, subscribeCallback)
         
 
 log.info("connection made")
@@ -89,4 +116,4 @@ while True:
     #message['message'] = args.message
     #message['sequence'] = loopCount
     #messageJson = json.dumps(message)
-    #iotclient.publish(topic, messageJson, 1)
+    #mqtt_client.publish(topic, messageJson, 1)

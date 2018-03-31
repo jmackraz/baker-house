@@ -11,5 +11,7 @@ aws iot-data publish \
 
 aws iot-data update-thing-shadow \
     --thing-name $BAKERHOUSE_IOT_THING \
-    --payload '{ "state": { "desired" : { "color" : { "r" : 10 }, "engine" : "ON" } } }' \
+    --payload '{ "state": { "desired" : { "color" : { "r" : 88 } } } }' \
     /tmp/thing_shadow_out && cat /tmp/thing_shadow_out
+
+    #--payload '{ "state": { "desired" : { "color" : { "r" : 10 }, "engine" : "ON" } } }' \
