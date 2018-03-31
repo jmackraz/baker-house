@@ -17,6 +17,7 @@ from cornice_swagger import CorniceSwagger
 from waitress import serve
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 # Pyramid WSGI app initialization
 
@@ -30,11 +31,6 @@ def create_wsgi_app(**settings):
     return config.make_wsgi_app()
 
 
-hello = Service(name='hello', path='/hello', description="Simplest app")
-@hello.get()
-def get_info(request):
-    """Returns Hello in JSON."""
-    return  {'message': 'Baker Home REST API'}
 
 devices = Service(name='devices', path='/devices', description="Discovery")
 @devices.get()
@@ -48,69 +44,106 @@ def get_receiver(request):
     log.debug("get_receiver")
     return {'name': 'family room receiver',
             'model': 'Integra blah blah',
-            'control': _CONTROL
             }
 
-    
-_CONTROL={'input': 'directv', 'volume': 40, 'last-modify': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')}
 
 
-# ZZZ: use this in a last-modified response header,
-# so iot can selectively update the device shadow
-#
-def _update_last_modify_time():
-    datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
-    _CONTROL['last-modify'] = datestring
+# Base class and mock for an AV device remote control
 
-def _last_modify_time():
-    return _CONTROL['last-modify']
+class MockControlSchema(colander.MappingSchema):
+    knob1 = colander.SchemaNode(colander.Int(), name="knob1", missing=colander.drop)
+    knob2 = colander.SchemaNode(colander.Int(), name="knob2",  missing=colander.drop)
 
 
-# don't blow out the volume
-VOLUME_LEVEL_CAP=50
+@resource(accept="text/json", path='/receiver/mock-control', schema=MockControlSchema(), validators=(colander_body_validator,), description="mock controls" )
+class RemoteControl:
+    _CONTROL={'sucks': True}
 
-def _update_receiver( knobs ):
-    """adjust the receiver by remote control"""
-    if 'input' in knobs:
-        log.info("set receiver input to: %s", knobs['input'])
+    # override me
+    def update(self, knobs ):
+        """mock implementation of the interface to some AV-like device"""
+        log.info("mock update of remote device")
 
-    if 'volume' in knobs:
-        capped_level = min(knobs['volume'], VOLUME_LEVEL_CAP)
-        log.info("set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
-        knobs['volume'] = capped_level
-
-    global _CONTROL
-
-    if len(knobs) > 0:
-        _update_last_modify_time()
-        _CONTROL.update(knobs)
+    # override me
+    def refresh(self):
+        """update local copy of device control settings, from hardware"""
+        log.info("mock refresh (no-op)")
 
 
-class ControlSchema(colander.MappingSchema):
-    input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
-    volume = colander.SchemaNode(colander.Int(), missing=colander.drop)
+    def _update_last_modify_time(self):
+        datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        self._CONTROL['last-modify'] = datestring
 
-@resource(accept="text/json", path='/receiver/control', schema=ControlSchema(), validators=(colander_body_validator,), description="audio controls" )
-class ReceiverControl:
+    def _last_modify_time():
+        return self._CONTROL['last-modify']
+
     def __init__(self, request, context = None):
         #log.debug("ReceiverControl init()")
         self.request = request
 
     def get(self):
-        """get receiver state"""
-        log.debug("get_receiver_ctl")
-        log.debug("_last_modify_time: %s", _last_modify_time())
-        return _CONTROL
+        """REST method: get receiver state"""
+        log.debug("get")
+        self.refresh()                          # get fresh read from device
+        return self._CONTROL
 
     def put(self):
-        """control receiver"""
-        log.debug("put_receiver_ctl")
+        """REST method: control receiver"""
+        log.debug("put")
 
         knobs = self.request.validated
-        _update_receiver(knobs)
+        self.update(knobs)                  # affect the device
 
-        log.debug("_last_modify_time: %s", _last_modify_time())
-        return _CONTROL
+        return self._CONTROL
+
+
+# Onkyo/Integra remote control
+# so iot can selectively update the device shadow
+
+
+class ReceiverControlSchema(colander.MappingSchema):
+    input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
+    volume = colander.SchemaNode(colander.Int(), missing=colander.drop)
+
+@resource(accept="text/json", path='/receiver/control', schema=ReceiverControlSchema(), validators=(colander_body_validator,), description="audio controls" )
+class OnkyoRemoteControl(RemoteControl):
+    # don't blow out the volume
+    VOLUME_LEVEL_CAP=50
+
+    def __init__(self, request, context = None):
+        super().__init__(request,context)
+
+    # override 
+    def refresh(self):
+        """update local copy of device control settings, from hardware"""
+        log.info("onkyo refresh (stubbed)")
+        fresh_values = {'input': 'directv', 'volume': 59}    # stub
+        changes_made = False
+        for knob in ['input', 'volume']:
+            if knob in fresh_values and fresh_values[knob] != RemoteControl._CONTROL.get(knob):
+                changes_made = True
+
+        if changes_made:
+            RemoteControl._CONTROL={'input': 'directv', 'volume': 59}
+            self._update_last_modify_time()
+
+    # override 
+    def update(self, knobs ):
+        """control an onkyo/integra AV receive"""
+        log.info("update of onkyo/integra receiver")
+        if 'input' in knobs:
+            log.info("stub set receiver input to: %s", knobs['input'])
+
+        if 'volume' in knobs:
+            capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
+            log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
+            knobs['volume'] = capped_level
+
+        # update our copy
+        if len(knobs) > 0:
+            self._CONTROL.update(knobs)
+            self._update_last_modify_time()     # merge dn the validated changes
+
 
 
 # Create a service to serve our OpenAPI spec

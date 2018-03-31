@@ -36,6 +36,7 @@ log.addHandler(streamHandler)
 class ShadowCallback:
     """device callbacks"""
     def __init__(self, shadow_handler):
+        log.debug("ShadowCallback init")
         self.shadow_handler = shadow_handler
 
     def delta(self, payload_json, responseStatus, token):

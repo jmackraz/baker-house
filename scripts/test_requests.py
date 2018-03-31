@@ -2,28 +2,40 @@
 
 import requests
 import json
+import time
 
 _endpoint="http://localhost:6543/"
 
-def url(path):
+def url(path, method='GET'):
     url= _endpoint + path
-    print("url:", url)
-
+    print(method, "url:", url)
     return url
 
+print("\ntest discovery")
+
 ret = requests.get(url('receiver'))
-print(ret.status_code)
-print(ret.json())
+if ret.status_code == 200:
+    print(ret.json())
+else:
+    print("error. code:", ret.status_code, "results:", ret.text)
 
 
+print("\ntest get")
 ret = requests.get(url('receiver/control'))
-print(ret.status_code)
-print(ret.json())
+if ret.status_code == 200:
+    print(ret.json())
+else:
+    print("error. code:", ret.status_code, "results:", ret.text)
 
+
+# modify something
+print("\ntest put")
 head = {'Content-type':'application/json',
              'Accept':'application/json'}
 
+ret = requests.put(url('receiver/control', 'PUT'), json={'volume':100})
+if ret.status_code == 200:
+    print(ret.json())
+else:
+    print("error. code:", ret.status_code, "results:", ret.text)
 
-ret = requests.put(url('receiver/control'), json={'volume':33})
-print(ret.status_code)
-print(ret.json())
