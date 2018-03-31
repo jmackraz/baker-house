@@ -35,17 +35,19 @@ log.addHandler(streamHandler)
 
 class ShadowCallback:
     """device callbacks"""
-    def __init__(self):
-        pass
+    def __init__(self, shadow_handler):
+        self.shadow_handler = shadow_handler
 
     def delta(self, payload_json, responseStatus, token):
         payload = json.loads(payload_json)
-        #pretty_json = json.dumps(payload['state'], indent=2, sort_keys=True)
-        pretty_json = json.dumps(payload, indent=2, sort_keys=True)
+        pretty_json = json.dumps(payload['state'], indent=2, sort_keys=True)
+        #pretty_json = json.dumps(payload, indent=2, sort_keys=True)
         log.info("Received a delta message: %s", pretty_json)
 
-        #newPayload = '{"state":{"reported":' + deltaMessage + '}}'
-        #self.deviceShadowInstance.shadowUpdate(newPayload, None, 5)
+        # acknowledge that the state change had effect
+        response_payload = {'state': {'reported': payload['state']}}
+
+        self.shadow_handler.shadowUpdate(json.dumps(response_payload), None, 5)
 
 class PollingDaemon:
     def __init__(self, interval):
@@ -80,7 +82,7 @@ shadow_client.connect()
 log.info("connected")
 
 shadow_handler = shadow_client.createShadowHandlerWithName(thingName, True)
-shadow_callback = ShadowCallback()
+shadow_callback = ShadowCallback(shadow_handler)
 shadow_handler.shadowRegisterDeltaCallback(shadow_callback.delta)
 
 poller = PollingDaemon(poll_hub_interval)
