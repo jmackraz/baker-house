@@ -57,7 +57,7 @@ class MockControlSchema(colander.MappingSchema):
 
 @resource(accept="text/json", path='/receiver/mock-control', schema=MockControlSchema(), validators=(colander_body_validator,), description="mock controls" )
 class RemoteControl:
-    _CONTROL={'sucks': True}
+    _CONTROL={}
 
     # override me
     def update(self, knobs ):
@@ -72,10 +72,10 @@ class RemoteControl:
 
     def _update_last_modify_time(self):
         datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
-        self._CONTROL['last-modify'] = datestring
+        self._CONTROL['hub-last-modify'] = datestring
 
     def _last_modify_time():
-        return self._CONTROL['last-modify']
+        return self._CONTROL['hub-last-modify']
 
     def __init__(self, request, context = None):
         #log.debug("ReceiverControl init()")
@@ -113,18 +113,26 @@ class OnkyoRemoteControl(RemoteControl):
     def __init__(self, request, context = None):
         super().__init__(request,context)
 
+        # initialize with fake values
+        if not RemoteControl._CONTROL:
+            log.debug("initialize _CONTROL")
+            RemoteControl._CONTROL={'input': 'directv', 'volume': 57}
+
     # override 
     def refresh(self):
         """update local copy of device control settings, from hardware"""
         log.info("onkyo refresh (stubbed)")
-        fresh_values = {'input': 'directv', 'volume': 59}    # stub
+        #fresh_values = {'input': 'directv', 'volume': 59}    # stub
+        # better stub: trust my mirroed values
+        fresh_values = RemoteControl._CONTROL
+
         changes_made = False
         for knob in ['input', 'volume']:
             if knob in fresh_values and fresh_values[knob] != RemoteControl._CONTROL.get(knob):
                 changes_made = True
 
         if changes_made:
-            RemoteControl._CONTROL={'input': 'directv', 'volume': 59}
+            RemoteControl._CONTROL=fresh_values
             self._update_last_modify_time()
 
     # override 

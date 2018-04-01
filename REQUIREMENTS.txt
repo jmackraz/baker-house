@@ -8,9 +8,10 @@ cornice_swagger
 colander
 waitress
 
-# command line AWS tools
+# for command line and python AWS tools
 awscli
 requests
+boto3
 
 # AWS IoT
 AWSIoTPythonSDK

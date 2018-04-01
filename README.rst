@@ -2,11 +2,6 @@
 Baker House Project
 =======================
 
-Status
-------
-
-Doesn't work yet.  All the pieces but the real Alexa skill have been proven out.
-
 Introduction
 ------------
 
@@ -21,10 +16,32 @@ Development can be done entirely on my Macbook, using the python AWS IoT API.
 Architecture:
 Alexa Skill -> Lambda -> AWS IoT (device shadow) -> HOUSE FIREWALL -> IoT Python Client -> home control hub RESTful service
 
-
 There is a lot of Alexa and IoT setup that is not yet documented here.
 
 The hub service (in the ./hub directory) is a pyramid app but unlike the cookiecutter example, it's self-contained in a single file.
+
+Status
+------
+
+* House_hub REST service working, as both a mock and a real interface to hardware
+* The interface to Onkyo/Integra hardware not yet wired in
+* AWS IoT device shadow working. Updates to device shadow are relayed to our house_iot enpoint, and on to house_hub
+* Independent setting of knob values, either by direct REST calls against house_hub or by turning the physical knob, are retrieved by polling and relayed to the IoT device shadow
+
+To Do
+-----
+
+V1
+
+* Create and test an Alexa-suitable form of the Lambda; select and report input
+* Complete and test the Alexa skill
+* Wire up the library for controlling actual receiver
+
+Later
+
+* Write up minimalist instructions for how to set up the AWS stuff
+* Maybe some scripts that set up all the AWS stuff, based on config values you specify
+
 
 Installation
 ------------
@@ -86,3 +103,5 @@ setup_environment_template.sh
 
   **STATUS:** Template for all configuration environment variables used at this time
 
+scripts/
+    Various scripts for making test REST requests against the hub service, poking the IoT device shadow, etc.
