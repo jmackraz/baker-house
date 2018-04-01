@@ -7,18 +7,14 @@ Introduction
 
 This is a home automation hobby project. The goal
 is to be able to execute any commands I want on a Raspberry Pi 
-in my house, using Alexa.
-
-There are no home automation frameworks, pluggable interfaces, controllable device adapters/drivers.  Just Python.
-
-Development can be done entirely on my Macbook, using the python AWS IoT API.
+in my house, using Alexa. There are no home automation frameworks, pluggable interfaces, controllable device adapters/drivers. Just Python. Development can be done entirely on my Macbook, using the python AWS IoT API.
 
 Architecture:
-Alexa Skill -> Lambda -> AWS IoT (device shadow) -> HOUSE FIREWALL -> IoT Python Client -> home control hub RESTful service
+    Alexa Skill -> Lambda -> AWS IoT (device shadow) -> HOUSE FIREWALL -> IoT Python Client -> home control hub RESTful service
 
 There is a lot of Alexa and IoT setup that is not yet documented here.
 
-The hub service (in the ./hub directory) is a pyramid app but unlike the cookiecutter example, it's self-contained in a single file.
+The hub service (src/house_hub.py) is a pyramid app but unlike the cookiecutter example, it's self-contained in a single file.
 
 Status
 ------
@@ -54,7 +50,7 @@ Installation
 
 Configuration
 -------------
-Configuration is done via environment variables.  The recommended practice:
+Configuration is done via environment variables. The recommended practice:
 
 #. Copy the file scripts/setup_environment_template.sh to the file setup_environment.sh
 #. Confirm that it is ignored by git, that is, it won't be checked in ever
@@ -67,11 +63,11 @@ What's Here
 -----------
 
 house_lambda.py
-  Implementation of an Alexa skill.  It communicates
+  Implementation of an Alexa skill. It communicates
   with the device in my home via the AWS IoT APIs,
   by updating the device shadow corresponding to my home hub state.
 
-  **STATUS:** It's just a demo lambda at this time that tries out AWS IoT 'publish'
+  **STATUS:** It's just a demo lambda at this time that tries out AWS IoT 'publish' (and we're not even using publish anymore)
 
 update_lambda.sh
   Shell script that updates the local copy of house_lambda.py into the cloud Lambda,
@@ -84,19 +80,19 @@ house_iot.py
   home audio and other state changes via the device shadow. It is built from an example 
   and takes key/cert/endpoint parameters via the command line
 
-  It interacts with the audio and other devices in the house by the 'hub' service REST API.
+  It interacts with the audio and other devices in the house by the house_hub service REST API.
 
   Start the client by executing this file as a script.
 
-  **STATUS:** Simplified 'subscribe' client, stub for polling source of truth
+  **STATUS:** Working, including integration with house_hub
 
 house_hub.py
-  Small RESTful service based on Pyramid and Cornice.  It uses <name here> python package to control Onkyo/Integra receivers.
+  Small RESTful service based on Pyramid and Cornice. It uses <name here> python package to control Onkyo/Integra receivers.
 
   Start the service (currently hardcoded to waitress) by executing this file as a script.
 
-  **STATUS:** Working as a service, with Colander schema validation.  Emits an OpenAPI 2.0 JSON definition (that's not very useful).
-  Ready to plug in the first couple of calls to actually control my receiver.
+  **STATUS:** Working as a service, with Colander schema validation. Emits an OpenAPI 2.0 JSON definition (that's not very useful).
+  Factored to provide a mock, plus a module for my physical AV receiver
 
 setup_environment_template.sh
   Template for setting up your configuration parameters/secrets as per the `Configuration`_ section above.
