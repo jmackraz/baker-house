@@ -14,7 +14,6 @@ Architecture:
 
 There is a lot of Alexa and IoT setup that is not yet documented here.
 
-The hub service (src/house_hub.py) is a pyramid app but unlike the cookiecutter example, it's self-contained in a single file.
 
 Status
 ------
@@ -90,6 +89,11 @@ house_hub.py
   Small RESTful service based on Pyramid and Cornice. It uses <name here> python package to control Onkyo/Integra receivers.
 
   Start the service (currently hardcoded to waitress) by executing this file as a script.
+  As an alternative, if you want the magical restat of the app when you modify a source file, you can also start the service using pserve,
+  and a simple paste.deploy config file, as follows, from the root dir;
+
+    env PYTHONPATH="src" pserve --reload house_hub_paste.ini
+
 
   **STATUS:** Working as a service, with Colander schema validation. Emits an OpenAPI 2.0 JSON definition (that's not very useful).
   Factored to provide a mock, plus a module for my physical AV receiver
@@ -101,3 +105,21 @@ setup_environment_template.sh
 
 scripts/
     Various scripts for making test REST requests against the hub service, poking the IoT device shadow, etc.
+
+Resources
+---------
+
+Prequisites
+
+* AWS Developer Signup
+* AWS IoT Servcice: Console, Documentation
+* Alexa Skill Developer Sign-up
+* Alexa Skill (new) Console
+
+Project
+
+* AWS General: CLI, Python binding - boto3
+* AWS IoT Python Library: Intro, API
+* REST Service: Pyramid, Cornice, Colander, Cornice_Swagger
+* Standard Python: requests, json, logging
+

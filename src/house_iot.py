@@ -5,7 +5,6 @@ import logging
 import time
 import json
 from os import environ
-from collections import defaultdict
 import requests
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient

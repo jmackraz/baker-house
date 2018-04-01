@@ -23,7 +23,7 @@ log.setLevel(logging.DEBUG)
 
 from pyramid.config import Configurator
 
-def create_wsgi_app(**settings):
+def create_wsgi_app(global_config, **settings):
     config = Configurator(settings=settings)
     config.include("cornice")
     config.include('cornice_swagger')
@@ -172,4 +172,4 @@ if __name__ == "__main__":
     # execute only if run as a script
     #
     logging.getLogger('waitress').setLevel(logging.DEBUG)
-    serve(create_wsgi_app(), listen='*:6543')
+    serve(create_wsgi_app(None), listen='*:6543')
