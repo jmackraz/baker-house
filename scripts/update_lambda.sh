@@ -2,8 +2,7 @@
 #!/bin/bash
 
 DIR="$(dirname $0)"
-python_file="$DIR/../src/new_house_lambda.py"
-#python_file="$DIR/../src/house_lambda.py"
+python_file="$DIR/../src/house_lambda.py"
 zip_file="/tmp/tmp_lambda.zip"
 lambda_name=$BAKERHOUSE_LAMBDA
 

@@ -143,6 +143,7 @@ def on_intent(intent_request, session):
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
         return cancel_intent()
     else:
+        log.error("UNKNOWN INTENT: %s", intent_name)
         raise ValueError("Invalid intent")
 
 
@@ -157,6 +158,7 @@ def on_session_ended(session_ended_request, session):
 # --------------- Main handler ------------------
 
 def lambda_handler(event, context):
+    log.debug("lambda_handler: event: %s", event)
     log.debug("lambda_handler: event.session.application.applicationId=%s", event['session']['application']['applicationId'])
 
     """
@@ -171,6 +173,8 @@ def lambda_handler(event, context):
     if event['session']['new']:
         on_session_started({'requestId': event['request']['requestId']},
                            event['session'])
+
+    log.debug("TYPE: %s", event['request']['type'])
 
     if event['request']['type'] == "LaunchRequest":
         return on_launch(event['request'], event['session'])
