@@ -18,24 +18,23 @@ There is a lot of Alexa and IoT setup that is not yet documented here.
 Status
 ------
 
-* House_hub REST service working, as both a mock and a real interface to hardware
+* End-to-end Alexa->Lambda->IoT Shadow->IoT Client->Hub Service working.
 * The interface to Onkyo/Integra hardware not yet wired in
-* AWS IoT device shadow working. Updates to device shadow are relayed to our house_iot enpoint, and on to house_hub
-* Independent setting of knob values, either by direct REST calls against house_hub or by turning the physical knob, are retrieved by polling and relayed to the IoT device shadow
 
 To Do
 -----
 
 V1
 
-* Create and test an Alexa-suitable form of the Lambda; select and report input
-* Complete and test the Alexa skill
 * Wire up the library for controlling actual receiver
+* Current requires an Echo registered to my AWS account. Explore options.
+* Explore using a repository for skill configuration/interaction, with or without lambda [any secrets in there?]
 
 Later
 
 * Write up minimalist instructions for how to set up the AWS stuff
 * Maybe some scripts that set up all the AWS stuff, based on config values you specify
+* Maybe one solution will be to set up everything from recipe in an AWS account tied to my consumer login.
 
 
 Installation
@@ -122,4 +121,5 @@ Project
 * AWS IoT Python Library: Intro, API
 * REST Service: Pyramid, Cornice, Colander, Cornice_Swagger
 * Standard Python: requests, json, logging
+* Alexa Skill Kit CLI (requires Node.js)
 
