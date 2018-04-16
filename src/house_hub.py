@@ -17,7 +17,7 @@ from cornice_swagger import CorniceSwagger
 from waitress import serve
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # Pyramid WSGI app initialization
 
@@ -35,13 +35,13 @@ def create_wsgi_app(global_config, **settings):
 devices = Service(name='devices', path='/devices', description="Discovery")
 @devices.get()
 def get_devices(request):
-    log.debug("get_devices")
+    log.info("get_devices")
     return {'devices': ['receiver', 'tv']}
 
 receiver = Service(name='receiver', path='/receiver', description="The one and only receiver")
 @receiver.get()
 def get_receiver(request):
-    log.debug("get_receiver")
+    log.info("get_receiver")
     return {'name': 'family room receiver',
             'model': 'Integra blah blah',
             }
@@ -121,7 +121,7 @@ class OnkyoRemoteControl(RemoteControl):
     # override 
     def refresh(self):
         """update local copy of device control settings, from hardware"""
-        log.info("onkyo refresh (stubbed)")
+        log.debug("onkyo refresh (stubbed)")
         #fresh_values = {'input': 'directv', 'volume': 59}    # stub
         # better stub: trust my mirroed values
         fresh_values = RemoteControl._CONTROL
@@ -171,5 +171,5 @@ def openAPI_spec(request):
 if __name__ == "__main__":
     # execute only if run as a script
     #
-    logging.getLogger('waitress').setLevel(logging.DEBUG)
+    logging.getLogger('waitress').setLevel(logging.INFO)
     serve(create_wsgi_app(None), listen='*:6543')

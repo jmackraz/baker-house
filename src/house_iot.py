@@ -25,7 +25,7 @@ controlPath = "receiver/control"
 
 # logging
 log = logging.getLogger("house_iot")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 streamHandler = logging.StreamHandler()
 #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')

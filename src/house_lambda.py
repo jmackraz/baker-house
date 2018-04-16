@@ -11,9 +11,9 @@ http://amzn.to/1LGWsLG
 
 from __future__ import print_function
 
-
 import logging
 import boto3
+import json
 
 from sys import stdout
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -23,32 +23,24 @@ handler.setFormatter(formatter)
 
 #logging.basicConfig(format=formatter)
 
-
 log = logging.getLogger(__name__)
 log.addHandler(handler)
 log.setLevel(logging.DEBUG)
 
 
+# Hardcoded connection to IoT device shadow
+thing_name = 'TrickyPi1'
 
 # --------------- Helpers that build all of the responses ----------------------
 
 def build_speechlet_response(title, output, reprompt_text, should_end_session):
     return {
-        'outputSpeech': {
-            'type': 'PlainText',
-            'text': output
-        },
-        'card': {
-            'type': 'Simple',
+        'outputSpeech': { 'type': 'PlainText', 'text': output },
+        'card': { 'type': 'Simple',
             'title': "SessionSpeechlet - " + title,
             'content': "SessionSpeechlet - " + output
         },
-        'reprompt': {
-            'outputSpeech': {
-                'type': 'PlainText',
-                'text': reprompt_text
-            }
-        },
+        'reprompt': { 'outputSpeech': { 'type': 'PlainText', 'text': reprompt_text } },
         'shouldEndSession': should_end_session
     }
 
@@ -70,53 +62,7 @@ def numeric_slot_value(slot):
 
 
 def validated_slot_value(slot):
-    """ return a value for a slot that's been validated.
-    Example valid:
-      "slots": {
-        "input_selection": {
-          "name": "input_selection",
-          "value": "SONOS",
-          "resolutions": {
-            "resolutionsPerAuthority": [
-              {
-                "authority": "amzn1.er-authority.echo-sdk.amzn1.ask.skill.e3c5f1e4-4914-493b-b279-24c31eda8099.input_source",
-                "status": {
-                  "code": "ER_SUCCESS_MATCH"
-                },
-                "values": [
-                  {
-                    "value": {
-                      "name": "sonos",
-                      "id": "f3c34f19222cdf435eda1ccd9fc021b2"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "confirmationStatus": "NONE"
-        }
-      }
-
-    Example invalid:
-      "slots": {
-        "input_selection": {
-          "name": "input_selection",
-          "value": "cat",
-          "resolutions": {
-            "resolutionsPerAuthority": [
-              {
-                "authority": "amzn1.er-authority.echo-sdk.amzn1.ask.skill.e3c5f1e4-4914-493b-b279-24c31eda8099.input_source",
-                "status": {
-                  "code": "ER_SUCCESS_NO_MATCH"
-                }
-              }
-            ]
-          },
-          "confirmationStatus": "NONE"
-        }
-      }
-    """   
+    """return a value for a slot that's been validated."""   
     if slot is not None:
         for resolution in slot['resolutions']['resolutionsPerAuthority']:
             if 'values' in resolution:
@@ -130,7 +76,7 @@ def intent_slot(intent, slot_name):
         return intent['slots'][slot_name]
     return None
 
-# --------------- Functions that control the skill's behavior ------------------
+# --------------- INTENTS ------------------
 
 input_select_prompt =  "You can select an input source by saying, select input sonos"
 volume_level_prompt =  "You can select the volume level by saying, volume 40"
@@ -175,6 +121,13 @@ def select_input(intent, session):
 
         speech_output = "Setting input source to {}".format(input_selection)
         reprompt_text = input_select_prompt
+
+        # update the IoT device shadow
+        payload = json.dumps( { 'state': { 'desired': {'input': input_selection}}} )
+
+        client=boto3.client('iot-data')
+        client.update_thing_shadow(thingName=thing_name, payload=payload)
+
     else:
         speech_output = "I didn't understand your selection. Please try again."
         reprompt_text = "I didn't understand your selection." + input_select_prompt
@@ -196,8 +149,14 @@ def set_volume(intent, session):
     volume_level = numeric_slot_value(slot)
     if volume_level is not None:
         log.debug("volume level slot value: %s", volume_level)
+        
+        # update the IoT device shadow
+        payload = json.dumps( { 'state': { 'desired': {'volume': volume_level}}} )
 
-        speech_output = "Setting volume level to {}".format(volume_level)
+        client=boto3.client('iot-data')
+        client.update_thing_shadow(thingName=thing_name, payload=payload)
+
+        speech_output = "Volume level set to {}".format(volume_level)
         reprompt_text = volume_level_prompt
     else:
         speech_output = "I didn't understand your selection. Please try again."
@@ -207,9 +166,7 @@ def set_volume(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 
-
-
-# --------------- Events ------------------
+# --------------- EVENTS ------------------
 
 def on_session_started(session_started_request, session):
     """ Called when the session starts """
@@ -285,34 +242,3 @@ def lambda_handler(event, context):
     elif event['request']['type'] == "SessionEndedRequest":
         return on_session_ended(event['request'], event['session'])
 
-
-if __name__=='__main__':
-
-    new_session_event = {
-        'session': {'new': True, 'application': {'applicationId': 'DUMMYID'}, 'sessionId': 'DUMMY_SESSION_ID'}, 
-        'request': {'type': 'BLAH', 'requestId': 'BLAH'}
-        }
-
-    launch_event = {
-        'session': {'new': False, 'application': {'applicationId': 'DUMMYID'}, 'sessionId': 'DUMMY_SESSION_ID'}, 
-        'request': {'type': 'LaunchRequest', 'requestId': 'BLAH'}
-        }
-
-    intent_event = {
-        'session': {'new': False, 'application': {'applicationId': 'DUMMYID'}, 'sessionId': 'DUMMY_SESSION_ID'}, 
-        'request': {'type': 'IntentRequest', 'requestId': 'BLAH', 'intent': {'name': 'TestIntent', 'slots': [] }}
-        }
-
-    end_session_event = {
-        'session': {'new': False, 'application': {'applicationId': 'DUMMYID'}, 'sessionId': 'DUMMY_SESSION_ID'}, 
-        'request': {'type': 'SessionEndedRequest', 'requestId': 'BLAH'}
-        }
-
-    test_events = [ new_session_event, launch_event, intent_event, end_session_event ]
-    #test_events = [ new_session_event ]
-
-
-    for event in test_events:
-        log.debug("call lambda_handler with fake event: %s", event['request']['requestId'])
-        response = lambda_handler( event, None )
-        log.debug("response: %s", response)
