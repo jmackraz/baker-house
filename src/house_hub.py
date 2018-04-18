@@ -6,15 +6,14 @@ from datetime import datetime
 import locale
 
 import colander
-
 from cornice import Service
 from cornice.resource import resource
 from cornice.validators import colander_body_validator
 from cornice.service import get_services
-
 from cornice_swagger import CorniceSwagger
-
 from waitress import serve
+
+import eiscp
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -108,50 +107,81 @@ class ReceiverControlSchema(colander.MappingSchema):
 @resource(accept="text/json", path='/receiver/control', schema=ReceiverControlSchema(), validators=(colander_body_validator,), description="audio controls" )
 class OnkyoRemoteControl(RemoteControl):
     # don't blow out the volume
-    VOLUME_LEVEL_CAP=50
+    VOLUME_LEVEL_CAP=65
 
     def __init__(self, request, context = None):
         super().__init__(request,context)
 
+        # discover receiver(s), use first found
+        # (can use model number, id string, etc.)
+        # ZZZ: cache IP address to save discovery delay
+        #
+        timeout=1
+        receivers = eiscp.eISCP.discover(timeout=timeout)
+        if receivers:
+            self.receiver =  receivers[0]
+        else:
+            log.warn("no receivers found. timeout was:", timeout)
+            self.receiver = None
+
         # initialize with fake values
         if not RemoteControl._CONTROL:
             log.debug("initialize _CONTROL")
-            RemoteControl._CONTROL={'input': 'directv', 'volume': 57}
+            RemoteControl._CONTROL={'input': 'none', 'volume': 0}
+
+        # get current values from hardware
+        self.refresh()
+
+    def _update_from_message(self, msg):
+        """record values found in loosely-coupled responses from receiver"""
+
+        if 'input-selector' in msg:
+            if RemoteControl._CONTROL['input'] != msg['input-selector']:
+                log.info("changing input to: %s", msg['input-selector']
+                RemoteControl._CONTROL['input'] = msg['input-selector']
+                self._update_last_modify_time()
+
+        if 'master-volume' in msg:
+            if RemoteControl._CONTROL['volume'] != msg['master-volume']:
+                log.info("changing volume to: %s", msg['master-volume']
+                RemoteControl._CONTROL['volume'] = msg['master-volume']
+                self._update_last_modify_time()
 
     # override 
     def refresh(self):
         """update local copy of device control settings, from hardware"""
-        log.debug("onkyo refresh (stubbed)")
-        #fresh_values = {'input': 'directv', 'volume': 59}    # stub
-        # better stub: trust my mirroed values
-        fresh_values = RemoteControl._CONTROL
 
-        changes_made = False
-        for knob in ['input', 'volume']:
-            if knob in fresh_values and fresh_values[knob] != RemoteControl._CONTROL.get(knob):
-                changes_made = True
+        if self.receiver is None:
+            log.warn("refresh: no receiver found")
+            return
 
-        if changes_made:
-            RemoteControl._CONTROL=fresh_values
-            self._update_last_modify_time()
+        log.debug("onkyo refresh, receiver:", self.receiver.info['model-name'] )
+
+        # query for current values and record them
+        response = self.receiver.command('input-selector', ['query'], zone='main')
+        self._update_from_message(response)
+
+        response = self.receiver.command('master-volume', ['query'], zone='main')
+        self._update_from_message(response)
 
     # override 
     def update(self, knobs ):
-        """control an onkyo/integra AV receive"""
-        log.info("update of onkyo/integra receiver")
+        """control onkyo/integra AV receiver"""
+        log.info("update onkyo/integra receiver")
+        if self.receiver is None:
+            log.warn("update: no receiver found")
+            return
+
         if 'input' in knobs:
             log.info("stub set receiver input to: %s", knobs['input'])
+            response = self.receiver.command('input-selector', [knobs['input']], zone='main')
+            self._update_from_message(response)
 
         if 'volume' in knobs:
             capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
             log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
-            knobs['volume'] = capped_level
-
-        # update our copy
-        if len(knobs) > 0:
-            self._CONTROL.update(knobs)
-            self._update_last_modify_time()     # merge dn the validated changes
-
+            response = self.receiver.command('input-selector', [capped_level], zone='main')
+            self._update_from_message(response)
 
 
 # Create a service to serve our OpenAPI spec
