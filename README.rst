@@ -24,22 +24,24 @@ To Do
 -----
 
 V1
-* DONE Wire up the library for controlling actual receiver
-* DONE Aliases: sonos<->cd, directv<->sat
-* DONE Figure out whether to reconcile one-to-many and sonos mapping in return values
-* DONE Confirm update of values from hardware work for IoT
+
+- DONE Wire up the library for controlling actual receiver
+- DONE Aliases: sonos<->cd, directv<->sat
+- DONE Figure out whether to reconcile one-to-many and sonos mapping in return values
+- DONE Confirm update of values from hardware work for IoT
 
 V2
-* support "Alexa ... what is the current input selection?"
-* Current requires an Echo registered to my AWS account. Explore options.
-* handle ValueError exceptions for bad input
+
+- support "Alexa ... what is the current input selection?"
+- Current requires an Echo registered to my AWS account. Explore options.
+- handle ValueError exceptions for bad input
 
 Later
 
-* Write up minimalist instructions for how to set up the AWS stuff
-* Explore using a repository for skill configuration/interaction, with or without lambda [any secrets in there?]
-* Maybe some scripts that set up all the AWS stuff, based on config values you specify
-* Maybe one solution will be to set up everything from recipe in an AWS account tied to my consumer login.
+- Write up minimalist instructions for how to set up the AWS stuff
+- Explore using a repository for skill configuration/interaction, with or without lambda [any secrets in there?]
+- Maybe some scripts that set up all the AWS stuff, based on config values you specify
+- Maybe one solution will be to set up everything from recipe in an AWS account tied to my consumer login.
 
 
 Installation
