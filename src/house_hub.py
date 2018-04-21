@@ -49,59 +49,6 @@ def get_receiver(request):
             }
 
 
-# Base class and mock for an AV device remote control
-
-class MockControlSchema(colander.MappingSchema):
-    knob1 = colander.SchemaNode(colander.Int(), name="knob1", missing=colander.drop)
-    knob2 = colander.SchemaNode(colander.Int(), name="knob2",  missing=colander.drop)
-
-
-@resource(accept="text/json", path='/receiver/mock-control', schema=MockControlSchema(), validators=(colander_body_validator,), description="mock controls" )
-class RemoteControl:
-    _CONTROL={}
-
-    # override me
-    def update(self, knobs ):
-        """mock implementation of the interface to some AV-like device"""
-        log.info("mock update of remote device")
-
-    # override me
-    def refresh(self):
-        """update local copy of device control settings, from hardware"""
-        log.info("mock refresh (no-op)")
-
-
-    def _update_last_modify_time(self):
-        datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
-        self._CONTROL['hub-last-modify'] = datestring
-
-    def _last_modify_time():
-        return self._CONTROL['hub-last-modify']
-
-    def __init__(self, request, context = None):
-        #log.debug("ReceiverControl init()")
-        self.request = request
-
-    def get(self):
-        """REST method: get receiver state"""
-        log.debug("get")
-        self.refresh()                          # get fresh read from device
-        return self._CONTROL
-
-    def put(self):
-        """REST method: control receiver"""
-        log.debug("put")
-
-        knobs = self.request.validated
-        self.update(knobs)                  # affect the device
-
-        return self._CONTROL
-
-
-# Onkyo/Integra remote control
-# so iot can selectively update the device shadow
-
-
 class ReceiverControlSchema(colander.MappingSchema):
     """definition of REST control payload"""
     input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
