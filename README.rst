@@ -92,7 +92,7 @@ house_iot.py
   **STATUS:** Working, including integration with house_hub
 
 house_hub.py
-  Small RESTful service based on Pyramid and Cornice. It uses <name here> python package to control Onkyo/Integra receivers.
+  Small RESTful service based on Pyramid and Cornice. It uses onkyo-eiscp python package to control Onkyo/Integra receivers.
 
   Start the service (currently hardcoded to waitress) by executing this file as a script.
   As an alternative, if you want the magical restat of the app when you modify a source file, you can also start the service using pserve,
