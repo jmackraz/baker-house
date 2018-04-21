@@ -27,14 +27,20 @@ else:
     print("error. code:", ret.status_code, "results:", ret.text)
 
 
-## modify something
-#print("\ntest put")
-#head = {'Content-type':'application/json',
-#             'Accept':'application/json'}
-#
-#ret = requests.put(url('receiver/control', 'PUT'), json={'volume':10})
-#if ret.status_code == 200:
-#    print(ret.json())
-#else:
-#    print("error. code:", ret.status_code, "results:", ret.text)
-#
+# modify something
+print("\ntest put")
+head = {'Content-type':'application/json',
+             'Accept':'application/json'}
+
+ret = requests.put(url('receiver/control', 'PUT'), json={'volume':10})
+if ret.status_code == 200:
+    print(ret.json())
+else:
+    print("error. code:", ret.status_code, "results:", ret.text)
+
+ret = requests.put(url('receiver/control', 'PUT'), json={'input':'sat'})
+if ret.status_code == 200:
+    print(ret.json())
+else:
+    print("error. code:", ret.status_code, "results:", ret.text)
+

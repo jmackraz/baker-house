@@ -118,18 +118,28 @@ class OnkyoRemoteControl:
 
 
         with eiscp.eISCP(_RECEIVER_IP) as receiver:
+
+            # times out if not on
+            if self.is_power_on(receiver):
+                if 'volume' in knobs:
+                    capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
+                    log.info("set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
+                    response = receiver.command('master-volume', [str(capped_level)], zone='main')
+                    self._update_from_response(response)
+            else:
+                log.info("receiver not powered on, command ignored")
+
+            # does not time out; powers up
             if 'input' in knobs:
-                log.info("stub set receiver input to: %s", knobs['input'])
+                log.info("set receiver input to: %s", knobs['input'])
                 response = receiver.command('input-selector', [knobs['input']], zone='main')
                 self._update_from_response(response)
 
-            if 'volume' in knobs:
-                capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
-                log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
-                response = receiver.command('input-selector', [capped_level], zone='main')
-                self._update_from_response(response)
-
         return _CONTROL
+
+    def is_power_on(self, receiver):
+        response = receiver.command('system-power', ['query'], zone='main')
+        return response[0] == 'system-power' and response[1] == 'on'
 
 
     def refresh(self):
