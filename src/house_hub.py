@@ -16,7 +16,8 @@ from waitress import serve
 import eiscp
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+# inherit root
+#log.setLevel(logging.INFO)
 
 # Pyramid WSGI app initialization
 
@@ -34,17 +35,18 @@ def create_wsgi_app(global_config, **settings):
 devices = Service(name='devices', path='/devices', description="Discovery")
 @devices.get()
 def get_devices(request):
+    """discovery stub. not used."""
     log.info("get_devices")
     return {'devices': ['receiver', 'tv']}
 
 receiver = Service(name='receiver', path='/receiver', description="The one and only receiver")
 @receiver.get()
 def get_receiver(request):
+    """stub. could use eiscp discovery, if I ever control more than one receiver"""
     log.info("get_receiver")
     return {'name': 'family room receiver',
             'model': 'Integra blah blah',
             }
-
 
 
 # Base class and mock for an AV device remote control
@@ -101,21 +103,27 @@ class RemoteControl:
 
 
 class ReceiverControlSchema(colander.MappingSchema):
+    """definition of REST control payload"""
     input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
     volume = colander.SchemaNode(colander.Int(), missing=colander.drop)
 
 @resource(accept="text/json", path='/receiver/control', schema=ReceiverControlSchema(), validators=(colander_body_validator,), description="audio controls" )
-class OnkyoRemoteControl(RemoteControl):
-    # don't blow out the volume
+class OnkyoRemoteControl:
+
+    _CONTROL=None
+
+    # don't blow out my speakers
     VOLUME_LEVEL_CAP=65
 
     def __init__(self, request, context = None):
-        super().__init__(request,context)
+        log.debug("OnkyoRemoteControl __init__")
+
+        self.request = request
 
         # discover receiver(s), use first found
         # (can use model number, id string, etc.)
         # ZZZ: cache IP address to save discovery delay
-        #
+
         timeout=1
         receivers = eiscp.eISCP.discover(timeout=timeout)
         if receivers:
@@ -125,29 +133,44 @@ class OnkyoRemoteControl(RemoteControl):
             self.receiver = None
 
         # initialize with fake values
-        if not RemoteControl._CONTROL:
+        if not self._CONTROL:
             log.debug("initialize _CONTROL")
-            RemoteControl._CONTROL={'input': 'none', 'volume': 0}
+            self._CONTROL={'input': 'none', 'volume': 0}
 
         # get current values from hardware
         self.refresh()
 
-    def _update_from_message(self, msg):
-        """record values found in loosely-coupled responses from receiver"""
 
-        if 'input-selector' in msg:
-            if RemoteControl._CONTROL['input'] != msg['input-selector']:
-                log.info("changing input to: %s", msg['input-selector']
-                RemoteControl._CONTROL['input'] = msg['input-selector']
-                self._update_last_modify_time()
+    def get(self):
+        """REST method: get receiver state"""
+        log.debug("GET")
+        self.refresh()                          # get fresh read from device
+        return self._CONTROL
 
-        if 'master-volume' in msg:
-            if RemoteControl._CONTROL['volume'] != msg['master-volume']:
-                log.info("changing volume to: %s", msg['master-volume']
-                RemoteControl._CONTROL['volume'] = msg['master-volume']
-                self._update_last_modify_time()
+    def put(self):
+        """REST method: control receiver"""
+        log.debug("PUT")
 
-    # override 
+        # clean up input payload, according to schema
+        knobs = self.request.validated
+
+        if self.receiver is None:
+            log.warn("put: no receiver found")
+            return
+
+        if 'input' in knobs:
+            log.info("stub set receiver input to: %s", knobs['input'])
+            response = self.receiver.command('input-selector', [knobs['input']], zone='main')
+            self._update_from_response(response)
+
+        if 'volume' in knobs:
+            capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
+            log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
+            response = self.receiver.command('input-selector', [capped_level], zone='main')
+            self._update_from_response(response)
+        return self._CONTROL
+
+
     def refresh(self):
         """update local copy of device control settings, from hardware"""
 
@@ -155,33 +178,48 @@ class OnkyoRemoteControl(RemoteControl):
             log.warn("refresh: no receiver found")
             return
 
-        log.debug("onkyo refresh, receiver:", self.receiver.info['model-name'] )
+        #log.debug("onkyo refresh, receiver:", self.receiver.info['model-name'] )
+        log.info("onkyo refresh, receiver:", self.receiver.info )
 
-        # query for current values and record them
+        # query for current values and remember them
         response = self.receiver.command('input-selector', ['query'], zone='main')
-        self._update_from_message(response)
+        self._update_from_response(response)
 
         response = self.receiver.command('master-volume', ['query'], zone='main')
-        self._update_from_message(response)
+        self._update_from_response(response)
 
-    # override 
-    def update(self, knobs ):
-        """control onkyo/integra AV receiver"""
-        log.info("update onkyo/integra receiver")
-        if self.receiver is None:
-            log.warn("update: no receiver found")
-            return
+    def _update_last_modify_time(self):
+        datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        self._CONTROL['hub-last-modify'] = datestring
 
-        if 'input' in knobs:
-            log.info("stub set receiver input to: %s", knobs['input'])
-            response = self.receiver.command('input-selector', [knobs['input']], zone='main')
-            self._update_from_message(response)
+    def _last_modify_time():
+        return self._CONTROL['hub-last-modify']
 
-        if 'volume' in knobs:
-            capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
-            log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
-            response = self.receiver.command('input-selector', [capped_level], zone='main')
-            self._update_from_message(response)
+    def _update_from_response(self, response):
+        """record values found in loosely-coupled responses from receiver"""
+        log.debug("_update_from_response: %s", response)
+
+        # eiscp response from receiver is not quite a dict, eg: ('input-selector', ('video2', 'cbl', 'sat')) 
+        # convert it to dict using neat trick
+        it = iter(response)
+        msg = dict(zip(it,it))
+
+        log.debug("_update msg: %s", msg)
+
+        if 'input-selector' in msg:
+            log.debug("current _CONTROL: %s", self._CONTROL)
+            #if self._CONTROL['input'] != msg['input-selector']:
+            if self._CONTROL['input'] != "fizzbin":
+                log.debug("msg: %s", msg)
+                log.info("recording input as: %s", str(msg['input-selector']))
+                self._CONTROL['input'] = msg['input-selector']
+                self._update_last_modify_time()
+
+        if 'master-volume' in msg:
+            if self._CONTROL['volume'] != msg['master-volume']:
+                log.info("recording volume as: %s", msg['master-volume'])
+                self._CONTROL['volume'] = msg['master-volume']
+                self._update_last_modify_time()
 
 
 # Create a service to serve our OpenAPI spec
@@ -201,5 +239,5 @@ def openAPI_spec(request):
 if __name__ == "__main__":
     # execute only if run as a script
     #
-    logging.getLogger('waitress').setLevel(logging.INFO)
+    logging.getLogger('waitress').setLevel(logging.DEBUG)
     serve(create_wsgi_app(None), listen='*:6543')
