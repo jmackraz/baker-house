@@ -60,6 +60,25 @@ _RECEIVER_IP=None
 @resource(accept="text/json", path='/receiver/control', schema=ReceiverControlSchema(), validators=(colander_body_validator,), description="audio controls" )
 class OnkyoRemoteControl:
 
+    input_aliases = (
+        ('directv', 'sat'),
+        ('sonos', 'cd'),
+        ('fire tv', 'strm-box')
+    )
+
+    def selection_alias(self, val):
+        for alias_pair in self.input_aliases:
+            if val == alias_pair[0]:
+                return alias_pair[1]
+        return val
+
+    def response_alias(self, val):
+        for alias_pair in self.input_aliases:
+            if alias_pair[1] in val:
+                return alias_pair[0]
+        return val
+
+
 
     # don't blow out my speakers
     VOLUME_LEVEL_CAP=65
@@ -132,6 +151,15 @@ class OnkyoRemoteControl:
             # does not time out; powers up
             if 'input' in knobs:
                 log.info("set receiver input to: %s", knobs['input'])
+
+                # low-tech aliasing
+                knobs['input'] = self.selection_alias(knobs['input'])
+
+                #if knobs['input'] == 'sonos':
+                #    knobs['input'] = 'cd'
+                #elif knobs['input'] == "directv":
+                #    knobs['input'] = "sat"
+
                 response = receiver.command('input-selector', [knobs['input']], zone='main')
                 self._update_from_response(response)
 
@@ -173,15 +201,18 @@ class OnkyoRemoteControl:
 
         if 'input-selector' in msg:
             log.debug("current _CONTROL: %s", _CONTROL)
-            if _CONTROL['input'] != msg['input-selector']:
+            input_source = self.response_alias(msg['input-selector'])
+
+
+            if _CONTROL['input'] != input_source:
                 log.debug("msg: %s", msg)
-                log.info("recording input as: %s", str(msg['input-selector']))
-                _CONTROL['input'] = msg['input-selector']
+                log.info("remembering input as: %s", str(input_source))
+                _CONTROL['input'] = input_source
                 self._update_last_modify_time()
 
         if 'master-volume' in msg:
             if _CONTROL['volume'] != msg['master-volume']:
-                log.info("recording volume as: %s", msg['master-volume'])
+                log.info("remembering volume as: %s", msg['master-volume'])
                 _CONTROL['volume'] = msg['master-volume']
                 self._update_last_modify_time()
 

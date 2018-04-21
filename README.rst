@@ -18,21 +18,26 @@ There is a lot of Alexa and IoT setup that is not yet documented here.
 Status
 ------
 
-* End-to-end Alexa->Lambda->IoT Shadow->IoT Client->Hub Service working.
-* The interface to Onkyo/Integra hardware not yet wired in
+* IT WORKS!
 
 To Do
 -----
 
 V1
+* DONE Wire up the library for controlling actual receiver
+* DONE Aliases: sonos<->cd, directv<->sat
+* DONE Figure out whether to reconcile one-to-many and sonos mapping in return values
+* DONE Confirm update of values from hardware work for IoT
 
-* Wire up the library for controlling actual receiver
+V2
+* support "Alexa ... what is the current input selection?"
 * Current requires an Echo registered to my AWS account. Explore options.
-* Explore using a repository for skill configuration/interaction, with or without lambda [any secrets in there?]
+* handle ValueError exceptions for bad input
 
 Later
 
 * Write up minimalist instructions for how to set up the AWS stuff
+* Explore using a repository for skill configuration/interaction, with or without lambda [any secrets in there?]
 * Maybe some scripts that set up all the AWS stuff, based on config values you specify
 * Maybe one solution will be to set up everything from recipe in an AWS account tied to my consumer login.
 
@@ -65,13 +70,13 @@ house_lambda.py
   with the device in my home via the AWS IoT APIs,
   by updating the device shadow corresponding to my home hub state.
 
-  **STATUS:** It's just a demo lambda at this time that tries out AWS IoT 'publish' (and we're not even using publish anymore)
+  **STATUS:** Working.  Need to add queries against device shadow ("What is the current volume?")
 
 update_lambda.sh
   Shell script that updates the local copy of house_lambda.py into the cloud Lambda,
   by creating a zip file and uploading it using the AWS CLI.
 
-  **STATUS:** Working
+  **STATUS:** Working. (May try ASK update approach)
 
 house_iot.py
   This runs in the house, and connects as a client to AWS IoT. It receives 
@@ -94,13 +99,12 @@ house_hub.py
     env PYTHONPATH="src" pserve --reload house_hub_paste.ini
 
 
-  **STATUS:** Working as a service, with Colander schema validation. Emits an OpenAPI 2.0 JSON definition (that's not very useful).
-  Factored to provide a mock, plus a module for my physical AV receiver
+  **STATUS:** Working, including aliases (e.g., "directv" <-> "sat")
+  Simplifed some more by stripping out unecessary base class
+  Need to handle ValueError exceptions from bogus input values
 
 setup_environment_template.sh
   Template for setting up your configuration parameters/secrets as per the `Configuration`_ section above.
-
-  **STATUS:** Template for all configuration environment variables used at this time
 
 scripts/
     Various scripts for making test REST requests against the hub service, poking the IoT device shadow, etc.
