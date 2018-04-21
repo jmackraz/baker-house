@@ -54,10 +54,12 @@ class ReceiverControlSchema(colander.MappingSchema):
     input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
     volume = colander.SchemaNode(colander.Int(), missing=colander.drop)
 
+_CONTROL=None
+_RECEIVER_IP=None
+
 @resource(accept="text/json", path='/receiver/control', schema=ReceiverControlSchema(), validators=(colander_body_validator,), description="audio controls" )
 class OnkyoRemoteControl:
 
-    _CONTROL=None
 
     # don't blow out my speakers
     VOLUME_LEVEL_CAP=65
@@ -71,28 +73,41 @@ class OnkyoRemoteControl:
         # (can use model number, id string, etc.)
         # ZZZ: cache IP address to save discovery delay
 
-        timeout=1
-        receivers = eiscp.eISCP.discover(timeout=timeout)
-        if receivers:
-            self.receiver =  receivers[0]
-        else:
-            log.warn("no receivers found. timeout was:", timeout)
-            self.receiver = None
+        global _RECEIVER_IP
+
+        if _RECEIVER_IP:
+            log.debug("check cached IP")
+            receiver = eiscp.eISCP(_RECEIVER_IP)
+
+            if not receiver or 'unknown' in receiver.info:
+                # re-discover
+                log.debug("cached IP didn't work, re-discover")
+                _RECEIVER_IP = None
+
+        if not _RECEIVER_IP:
+            log.debug("discover receiver")
+            timeout=1
+            receivers = eiscp.eISCP.discover(timeout=timeout)
+            if receivers:
+                _RECEIVER_IP = receivers[0].host
+                log.debug("receiver discovered at: %s", _RECEIVER_IP)
+            else:
+                log.warn("no receivers found. timeout was: %s", timeout)
 
         # initialize with fake values
-        if not self._CONTROL:
+        global _CONTROL
+        if not _CONTROL:
             log.debug("initialize _CONTROL")
-            self._CONTROL={'input': 'none', 'volume': 0}
-
-        # get current values from hardware
-        self.refresh()
+            _CONTROL={'input': 'none', 'volume': 0}
+            # get current values from hardware
+            self.refresh()
 
 
     def get(self):
         """REST method: get receiver state"""
         log.debug("GET")
-        self.refresh()                          # get fresh read from device
-        return self._CONTROL
+        self.refresh()                          # read fresh state from hardware
+        return _CONTROL
 
     def put(self):
         """REST method: control receiver"""
@@ -101,46 +116,41 @@ class OnkyoRemoteControl:
         # clean up input payload, according to schema
         knobs = self.request.validated
 
-        if self.receiver is None:
-            log.warn("put: no receiver found")
-            return
 
-        if 'input' in knobs:
-            log.info("stub set receiver input to: %s", knobs['input'])
-            response = self.receiver.command('input-selector', [knobs['input']], zone='main')
-            self._update_from_response(response)
+        with eiscp.eISCP(_RECEIVER_IP) as receiver:
+            if 'input' in knobs:
+                log.info("stub set receiver input to: %s", knobs['input'])
+                response = receiver.command('input-selector', [knobs['input']], zone='main')
+                self._update_from_response(response)
 
-        if 'volume' in knobs:
-            capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
-            log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
-            response = self.receiver.command('input-selector', [capped_level], zone='main')
-            self._update_from_response(response)
-        return self._CONTROL
+            if 'volume' in knobs:
+                capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
+                log.info("stub set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
+                response = receiver.command('input-selector', [capped_level], zone='main')
+                self._update_from_response(response)
+
+        return _CONTROL
 
 
     def refresh(self):
         """update local copy of device control settings, from hardware"""
 
-        if self.receiver is None:
-            log.warn("refresh: no receiver found")
-            return
+        with eiscp.eISCP(_RECEIVER_IP) as receiver:
+            log.info("onkyo refresh, receiver: %s", receiver.info )
 
-        #log.debug("onkyo refresh, receiver:", self.receiver.info['model-name'] )
-        log.info("onkyo refresh, receiver:", self.receiver.info )
+            # query for current values and remember them
+            response = receiver.command('input-selector', ['query'], zone='main')
+            self._update_from_response(response)
 
-        # query for current values and remember them
-        response = self.receiver.command('input-selector', ['query'], zone='main')
-        self._update_from_response(response)
-
-        response = self.receiver.command('master-volume', ['query'], zone='main')
-        self._update_from_response(response)
+            response = receiver.command('master-volume', ['query'], zone='main')
+            self._update_from_response(response)
 
     def _update_last_modify_time(self):
         datestring = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
-        self._CONTROL['hub-last-modify'] = datestring
+        _CONTROL['hub-last-modify'] = datestring
 
     def _last_modify_time():
-        return self._CONTROL['hub-last-modify']
+        return _CONTROL['hub-last-modify']
 
     def _update_from_response(self, response):
         """record values found in loosely-coupled responses from receiver"""
@@ -151,21 +161,18 @@ class OnkyoRemoteControl:
         it = iter(response)
         msg = dict(zip(it,it))
 
-        log.debug("_update msg: %s", msg)
-
         if 'input-selector' in msg:
-            log.debug("current _CONTROL: %s", self._CONTROL)
-            #if self._CONTROL['input'] != msg['input-selector']:
-            if self._CONTROL['input'] != "fizzbin":
+            log.debug("current _CONTROL: %s", _CONTROL)
+            if _CONTROL['input'] != msg['input-selector']:
                 log.debug("msg: %s", msg)
                 log.info("recording input as: %s", str(msg['input-selector']))
-                self._CONTROL['input'] = msg['input-selector']
+                _CONTROL['input'] = msg['input-selector']
                 self._update_last_modify_time()
 
         if 'master-volume' in msg:
-            if self._CONTROL['volume'] != msg['master-volume']:
+            if _CONTROL['volume'] != msg['master-volume']:
                 log.info("recording volume as: %s", msg['master-volume'])
-                self._CONTROL['volume'] = msg['master-volume']
+                _CONTROL['volume'] = msg['master-volume']
                 self._update_last_modify_time()
 
 
