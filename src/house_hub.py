@@ -123,7 +123,7 @@ class OnkyoRemoteControl:
 
     def get(self):
         """REST method: get receiver state"""
-        log.info("GET")
+        log.debug("GET")
         self.refresh()                          # read fresh state from hardware
         return _CONTROL
 
@@ -173,7 +173,7 @@ class OnkyoRemoteControl:
         """update local copy of device control settings, from hardware"""
 
         with eiscp.eISCP(_RECEIVER_IP) as receiver:
-            log.info("onkyo refresh, receiver: %s", receiver.info )
+            log.debug("onkyo refresh, receiver: %s", receiver.info )
 
             # query for current values and remember them
             response = receiver.command('input-selector', ['query'], zone='main')
