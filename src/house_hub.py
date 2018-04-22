@@ -17,7 +17,6 @@ import eiscp
 
 log = logging.getLogger(__name__)
 # inherit root
-#log.setLevel(logging.INFO)
 
 # Pyramid WSGI app initialization
 
@@ -124,13 +123,13 @@ class OnkyoRemoteControl:
 
     def get(self):
         """REST method: get receiver state"""
-        log.debug("GET")
+        log.info("GET")
         self.refresh()                          # read fresh state from hardware
         return _CONTROL
 
     def put(self):
         """REST method: control receiver"""
-        log.debug("PUT")
+        log.info("PUT")
 
         # clean up input payload, according to schema
         knobs = self.request.validated
@@ -139,14 +138,14 @@ class OnkyoRemoteControl:
         with eiscp.eISCP(_RECEIVER_IP) as receiver:
 
             # times out if not on
-            if self.is_power_on(receiver):
-                if 'volume' in knobs:
+            if 'volume' in knobs:
+                if self.is_power_on(receiver):
                     capped_level = min(knobs['volume'], self.VOLUME_LEVEL_CAP)
                     log.info("set receiver volume to: %s (capped, requested: %s)", capped_level, knobs['volume'])
                     response = receiver.command('master-volume', [str(capped_level)], zone='main')
                     self._update_from_response(response)
-            else:
-                log.info("receiver not powered on, command ignored")
+                else:
+                    log.info("receiver not powered on, volume setting ignored")
 
             # does not time out; powers up
             if 'input' in knobs:
@@ -234,5 +233,5 @@ def openAPI_spec(request):
 if __name__ == "__main__":
     # execute only if run as a script
     #
-    logging.getLogger('waitress').setLevel(logging.DEBUG)
+    #logging.getLogger('waitress').setLevel(logging.DEBUG)
     serve(create_wsgi_app(None), listen='*:6543')
