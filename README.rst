@@ -30,6 +30,9 @@ V1
 - DONE Figure out whether to reconcile one-to-many and sonos mapping in return values
 - DONE Confirm update of values from hardware work for IoT
 
+V1.1
+- Fix that manual settings are overridden by device shadow settings
+
 V2
 
 - support "Alexa ... what is the current input selection?"

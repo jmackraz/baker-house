@@ -94,7 +94,10 @@ class PollingDaemon:
 
                     # remove this key before updating Thing
                     self.hub_last_modify = polled_state.pop('hub-last-modify', None)
-                    response_payload = {'state': {'reported': polled_state}}
+
+                    # values found in the receiver are *desired* by humans,
+                    # so have to say that here, else the device shadow will override the humans
+                    response_payload = {'state': {'reported': polled_state, 'desired': polled_state}}
 
                     self.shadow_handler.shadowUpdate(json.dumps(response_payload), None, 5)
                 else:
