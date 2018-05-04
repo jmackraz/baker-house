@@ -91,6 +91,7 @@ class PollingDaemon:
                 
                 if polled_state.get('hub-last-modify', self.hub_last_modify) != self.hub_last_modify:
                     log.info("data polled from hub has changed, so update Thing")
+                    log.info("new state: %s", polled_state)
 
                     # remove this key before updating Thing
                     self.hub_last_modify = polled_state.pop('hub-last-modify', None)
