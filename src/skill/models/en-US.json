@@ -1,0 +1,81 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "baker house",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "select_input",
+          "slots": [
+            {
+              "name": "input_selection",
+              "type": "input_source"
+            }
+          ],
+          "samples": [
+            "show {input_selection}",
+            "play {input_selection}",
+            "set input to {input_selection}",
+            "select {input_selection} "
+          ]
+        },
+        {
+          "name": "set_volume",
+          "slots": [
+            {
+              "name": "volume_level",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "volume {volume_level}",
+            "set volume to {volume_level}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "name": {
+                "value": "satellite"
+              }
+            },
+            {
+              "name": {
+                "value": "dvd"
+              }
+            },
+            {
+              "name": {
+                "value": "fire tv"
+              }
+            },
+            {
+              "name": {
+                "value": "directv"
+              }
+            },
+            {
+              "name": {
+                "value": "sonos"
+              }
+            }
+          ],
+          "name": "input_source"
+        }
+      ]
+    }
+  }
+}
