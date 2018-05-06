@@ -10,8 +10,6 @@ export AWS_PROFILE="default"
 export BAKERHOUSE_IOT_THING="NOT_SET"
 # AWS IoT Thing type
 export BAKERHOUSE_IOT_THING_TYPE="${BAKERHOUSE_IOT_THING}_type"
-# AWS IoT Thing ARN
-export BAKERHOUSE_IOT_THING_ARN="NOT_SET"
 
 # AWS IoT Certificates
 
@@ -25,7 +23,7 @@ export BAKERHOUSE_MYCERT_FILE="$certdir/certificate.pem.crt"
 export BAKERHOUSE_PRIVATEKEY_FILE="$certdir/private.pem.key"
 
 # AWS IoT endpoint
+# The configuration process will spit this out, so you can set it.
+# You can also retreive it from the AWS IoT console, in the 
+# "Interact" page of your Thing configuration.
 export BAKERHOUSE_ENDPOINT="NOT_SET"
-
-# ARN of Lambda
-export BAKERHOUSE_LAMBDA="NOT_SET"
