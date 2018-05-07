@@ -67,6 +67,11 @@ Configuration is done via environment variables. The recommended practice:
 
      source setup_environment.sh
 
+For details on the AWS / Alexa configuration and instant set up, see `Cloud Config`_
+
+.. _`Cloud Config`: https:docs/cloud_config
+
+
 What's Here
 -----------
 
