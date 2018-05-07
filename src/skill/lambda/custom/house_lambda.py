@@ -28,8 +28,9 @@ log.addHandler(handler)
 log.setLevel(logging.DEBUG)
 
 
-# Hardcoded connection to IoT device shadow
-thing_name = 'TrickyPi1'
+# IoT thing name needs to come from the environment (set up in handler main)
+thing_name = 'NOT_SET'
+
 
 # --------------- Helpers that build all of the responses ----------------------
 
@@ -219,6 +220,12 @@ def on_session_ended(session_ended_request, session):
 def lambda_handler(event, context):
     log.debug("lambda_handler: event: %s", event)
     log.debug("lambda_handler: event.session.application.applicationId=%s", event['session']['application']['applicationId'])
+
+    global thing_name
+    thing_name = environ.get('BAKERHOUSE_IOT_THING')
+    if thing_name is None:
+        log.error("lambda_handler: required environment variable 'BAKERHOUSE_IOT_THING' is not set")
+        return
 
     """
     Uncomment this if statement and populate with your skill's application ID to
