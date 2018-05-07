@@ -30,6 +30,11 @@ class IoTConfig:
         self.root_cert_file=get_verified_env('BAKERHOUSE_ROOTCERT_FILE')
         self.certificateArn=None
 
+        print("\nCONFIGURING {thing} for AWS: {aws} and ASK: {ask}".format(
+                                thing=self.thing_name,
+                                aws=environ.get('AWS_PROFILE', "(default)"),
+                                ask=environ.get('ASK_DEFAULT_PROFILE', "(default)")))
+
     def create_thing_type(self):
         print("\nTHING TYPE")
 
@@ -72,7 +77,7 @@ class IoTConfig:
         #print("describe_endpoint:", res)
         print("Endpoint address: {}".format(res['endpointAddress']))
         if get_verified_env('BAKERHOUSE_ENDPOINT', exit_on_fail=False) != res['endpointAddress']:
-            print("WARNING: Environment variable BAKERHOUSE_ENDPOINT must be set to this value at runtime!")
+            print("WARNING: Environment variable BAKERHOUSE_ENDPOINT must be set to this value for runtime connections")
 
     def create_policy(self):
         """create AWS IoT policy for my thing"""

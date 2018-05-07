@@ -8,9 +8,26 @@ from os import environ
 import requests
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
+# logging
+log = logging.getLogger("house_iot")
+log.setLevel(logging.INFO)
+streamHandler = logging.StreamHandler()
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+streamHandler.setFormatter(formatter)
+log.addHandler(streamHandler)
+
 
 # config from environment
-host = environ["BAKERHOUSE_ENDPOINT"]
+host_env_var="BAKERHOUSE_ENDPOINT"
+host = environ.get(host_env_var, "NOT SET")
+profile = environ.get("AWS_PROFILE", "default")
+if host.startswith("NOT"):
+    profile_fixed = profile.replace("-","_")
+    host_env_var="BAKERHOUSE_ENDPOINT_"+profile_fixed
+    host = environ.get(host_env_var)
+log.info("Host endoint for profile %s (%s): %s", profile, host_env_var, host)
+
 certificatePath = environ["BAKERHOUSE_MYCERT_FILE"]
 rootCAPath = environ["BAKERHOUSE_ROOTCERT_FILE"]
 privateKeyPath = environ["BAKERHOUSE_PRIVATEKEY_FILE"]
@@ -22,15 +39,6 @@ useWebsocket = False
 hubEndpoint="http://localhost:6543/"
 #controlPath = "receiver/mock-control"
 controlPath = "receiver/control"
-
-# logging
-log = logging.getLogger("house_iot")
-log.setLevel(logging.INFO)
-streamHandler = logging.StreamHandler()
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-streamHandler.setFormatter(formatter)
-log.addHandler(streamHandler)
 
 ### ###
 # Events and polling

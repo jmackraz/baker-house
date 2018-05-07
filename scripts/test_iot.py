@@ -9,7 +9,15 @@ import requests
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
 
 # config from environment
-host = environ["BAKERHOUSE_ENDPOINT"]
+host_env_var="BAKERHOUSE_ENDPOINT"
+host = environ.get(host_env_var, "NOT SET")
+profile = environ.get("AWS_PROFILE", "default")
+if host.startswith("NOT"):
+    profile_fixed = profile.replace("-","_")
+    host_env_var="BAKERHOUSE_ENDPOINT_"+profile_fixed
+    host = environ.get(host_env_var)
+print("Host endoint for profile {} ({}): {}".format( profile, host_env_var, host))
+
 certificatePath = environ["BAKERHOUSE_MYCERT_FILE"]
 rootCAPath = environ["BAKERHOUSE_ROOTCERT_FILE"]
 privateKeyPath = environ["BAKERHOUSE_PRIVATEKEY_FILE"]
