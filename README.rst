@@ -69,7 +69,7 @@ Configuration is done via environment variables. The recommended practice:
 
 For details on the AWS / Alexa configuration and instant set up, see `Cloud Config`_
 
-.. _`Cloud Config`: https:docs/cloud_config
+.. _`Cloud Config`: https:docs/house_config.rst
 
 
 What's Here
