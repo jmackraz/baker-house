@@ -5,56 +5,116 @@ Baker House Project
 Introduction
 ------------
 
-This is a home automation hobby project. The goal
-is to be able to execute any commands I want on a Raspberry Pi 
-in my house, using Alexa. There are no home automation frameworks, pluggable interfaces, controllable device adapters/drivers. Just Python. Development can be done entirely on my Macbook, using the python AWS IoT API.
+This is a home automation hobby project, to control whatever you want
+on a Raspberry Pi (for example) by voice, using Alexa, AWS Lambda and AWS IoT, all
+in Python.  In this implementation, we use the onkly-eiscp package to control
+an Onkly/Integra AV Receiver.
 
-Architecture:
-    Alexa Skill -> Lambda -> AWS IoT (device shadow) -> HOUSE FIREWALL -> IoT Python Client -> home control hub RESTful service
+It is a goal to make this as absolutely simple as possible.  At runtime, there
+are only three Python files: a Lambda function in the cloud, the client side of an AWS IoT
+connection, and a simple server that provides a REST API to control the AV Receiver.
 
-There is a lot of Alexa and IoT setup that is not yet documented here.
+Apart from a stripped-down Pyramid application for the REST service, there
+aren't any home automation or other frameworks.  Configuration is managed by a
+environment variables exported from a setup file.
+
+While the code is very simple, setting up everything necessary in AWS/Alexa is
+not.  Tutorials walk us through a lot of clicking in consoles, creating
+entities, downloading certificates and keys, selecting configurations, and
+associating or attaching them correctly.
+
+In this project, all of this setup is now scripted and instant once you've set up your
+AWS and Alexa Skills Kit (ASK) account and some of the tools.  The setup scripts 
+are illustrative, particularly regarding the AWS IoT configuration.  The
+Alexa skill and its Lambda are deployed from local files using the ASK CLI,
+which also provides a productive development workflow for ongoing
+development of the skill.
+
+By it's nature, this skill isn't something you would publish as is. It's a
+learning exercise and you can use the skill in your house to control your own stuff.
+
+But it only works if you have an Echo device registered to the AWS developer
+account to which you deployed the skill. If your home Echos are on a
+separate, "consumer" account, you must either register one of the Echos to your AWS
+account, or you can add AWS  to your consumer account and deploy the skill to that.
+
+There's some more information on managing multiple AWS accounts TO BE PROVIDED,
+as I had to sort this out for myself.
+
+High Level Architecture
+-----------------------
+
+Here's a walk through the architecture, following what happens when you say, "Alexa, ask Baker House to set volume to 30."
+
+Echo Device:
+    Your words are sent to Alexa, associated with your account, and all the skills you have installed.
+    Our skill (*Baker House*) is available if the Echo is registered to your AWS account.
+
+Alexa Skill:
+    Alexa identifies our skill by its *Invocation Phrase* ("Baker House").  It
+    parses the speech according to our skill's *Interaction Model* and
+    determines the *Intent* (set volume) and the value of the *numeric slot* (30).
+
+    Alexa then passes all this in a call to our associated Lambda function.
+
+Lamba Function:
+    Our Lambda function object in the cloud comprises the code (a single Python file), the specification
+    of a runtime (python3.6) and our code entry point or *handler*.
+
+    It receives the intent and slots from Alexa and in turn it tells our AWS
+    IoT *Thing* that the desired volume should be 30.
+
+Thing:
+    This entity in the AWS IoT service is the rendevous point where our cloud code (Lambda)
+    and our client code meet.
+
+    We use the Thing's *Device Shadow* model, that is, a shadow copy of the
+    state of the home system (volume, input selection).  In this case, our
+    Lambda specifies the (*desired*) state of the volume to be 30.
+
+    When this happens, the Thing sends  *delta update message* to its connected *IoT Client*.
+
+IoT Client:
+    Back in your house, a Python program uses the AWS IoT Client API library
+    *AWSIoTPythonSDK* to establish and maintain a **persistent** connection to
+    the AWS IoT service.
+
+    The client will receive the delta updates from the IoT device shadow. It processes these
+    by making a request to the RESTful *Hub Service*.
+
+Hub Service:
+    This service provides a small API to control the AV receiver, based on the onkyo-eiscp package.
+
+    This service also provides a method to query the AV Receiver for its state. The IoT Client polls this method
+    and will relay any detected changes (made by a human using the remote control) back up to the IoT device shadow.
 
 
-Status
-------
+It's just that simple, except for one thing: Security.  There are a number of
+very different policies and certificates involved at each step, not to mention
+the AWS and ASK credentials you need to do development.  This is why the setup
+scripts are so helpful.  A listing of the security aspects of the project are
+TO BE PROVIDED.
 
-* IT WORKS!
 
 To Do
 -----
 
-V1
-
-- DONE Wire up the library for controlling actual receiver
-- DONE Aliases: sonos<->cd, directv<->sat
-- DONE Figure out whether to reconcile one-to-many and sonos mapping in return values
-- DONE Confirm update of values from hardware work for IoT
-
-V1.1
-- Fix that manual settings are overridden by device shadow settings
-
-V2
-
-- support "Alexa ... what is the current input selection?"
-- Current requires an Echo registered to my AWS account. Explore options.
-- handle ValueError exceptions for bad input
-
-Later
-
-- Write up minimalist instructions for how to set up the AWS stuff
-- Explore using a repository for skill configuration/interaction, with or without lambda [any secrets in there?]
-- Maybe some scripts that set up all the AWS stuff, based on config values you specify
-- Maybe one solution will be to set up everything from recipe in an AWS account tied to my consumer login.
+- support "Alexa ... what is the current volume/input selection?"
+- refine the interaction model; it stays open and nags.
+- finish documentatino
 
 
 Installation
 ------------
 
-#. Check out this repository
-#. (Within a virtual env) install dependencies::
+Rewrite this:
 
-    pip install -r REQUIREMENTS.txt
-
+- Development prerequisites: AWS/ASK, python3, venv/wrapper
+- Project setup: ``pip install -r REQUIREMENTS.txt`` and create ``setup_environment.sh`` from the provided template
+- Run ``scripts/config_aws_iot.py`` to create (or list) all the IoT setup
+- ``cd src/skill`` and type ``ask deploy`` to create (later, to update) the skill and the lambda
+- ``./post_deploy.py`` to tweak the lambda created above
+- Run tests, start client and hub services
 
 Configuration
 -------------
