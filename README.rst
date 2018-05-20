@@ -3,7 +3,7 @@ Baker House Project
 =======================
 
 Introduction
-------------
+============
 
 This is a home automation hobby project, to control whatever you want
 on a Raspberry Pi (for example) by voice, using Alexa, AWS Lambda and AWS IoT, all
@@ -42,7 +42,7 @@ There's some more information on managing multiple AWS accounts TO BE PROVIDED,
 as I had to sort this out for myself.
 
 High Level Architecture
------------------------
+=======================
 
 Here's a walk through the architecture, following what happens when you say, "Alexa, ask Baker House to set volume to 30."
 
@@ -95,58 +95,16 @@ the AWS and ASK credentials you need to do development.  This is why the setup
 scripts are so helpful.  A listing of the security aspects of the project are
 TO BE PROVIDED.
 
-
-To Do
------
-
-- support "Alexa ... what is the current volume/input selection?"
-- refine the interaction model; it stays open and nags.
-- finish documentatino
-
-
-Installation
-------------
-
-Rewrite this:
-
-- Development prerequisites: AWS/ASK, python3, venv/wrapper
-- Project setup: ``pip install -r REQUIREMENTS.txt`` and create ``setup_environment.sh`` from the provided template
-- Run ``scripts/config_aws_iot.py`` to create (or list) all the IoT setup
-- ``cd src/skill`` and type ``ask deploy`` to create (later, to update) the skill and the lambda
-- ``./post_deploy.py`` to tweak the lambda created above
-- Run tests, start client and hub services
-
-Configuration
--------------
-Configuration is done via environment variables. The recommended practice:
-
-#. Copy the file scripts/setup_environment_template.sh to the file setup_environment.sh
-#. Confirm that it is ignored by git, that is, it won't be checked in ever
-#. Fill the values with your configuration secrets
-#. Add these values to your environment::
-
-     source setup_environment.sh
-
-For details on the AWS / Alexa configuration and instant set up, see `Cloud Config`_
-
-.. _`Cloud Config`: https:docs/house_config.rst
-
-
 What's Here
------------
+===========
 
 house_lambda.py
   Implementation of an Alexa skill. It communicates
   with the device in my home via the AWS IoT APIs,
   by updating the device shadow corresponding to my home hub state.
 
-  **STATUS:** Working.  Need to add queries against device shadow ("What is the current volume?")
-
-update_lambda.sh
-  Shell script that updates the local copy of house_lambda.py into the cloud Lambda,
-  by creating a zip file and uploading it using the AWS CLI.
-
-  **STATUS:** Working. (May try ASK update approach)
+  This file is found under the src/skill directory.  It is most conveniently updated
+  to the cloud using the "ask deploy" command.
 
 house_iot.py
   This runs in the house, and connects as a client to AWS IoT. It receives 
@@ -157,32 +115,143 @@ house_iot.py
 
   Start the client by executing this file as a script.
 
-  **STATUS:** Working, including integration with house_hub
-
 house_hub.py
   Small RESTful service based on Pyramid and Cornice. It uses onkyo-eiscp python package to control Onkyo/Integra receivers.
 
   Start the service (currently hardcoded to waitress) by executing this file as a script.
-  As an alternative, if you want the magical restat of the app when you modify a source file, you can also start the service using pserve,
-  and a simple paste.deploy config file, as follows, from the root dir;
+
+  As an alternative, if you want the magical restat of the app when you modify a source file, you can also start the service using ``pserve``,
+  and a simple paste.deploy config file, as follows, from the top level directory;
 
     env PYTHONPATH="src" pserve --reload house_hub_paste.ini
 
-
-  **STATUS:** Working, including aliases (e.g., "directv" <-> "sat")
-  Simplifed some more by stripping out unecessary base class
-  Need to handle ValueError exceptions from bogus input values
-
 setup_environment_template.sh
-  Template for setting up your configuration parameters/secrets as per the `Configuration`_ section above.
+  Template for setting up your configuration parameters/secrets as per the `Project Configuration`_ section above.
 
 scripts/
-    Various scripts for making test REST requests against the hub service, poking the IoT device shadow, etc.
+    Various scripts for creating the AWS cloud entities and testing the various components.
+
+
+To Do
+=====
+
+- support "Alexa ... what is the current volume/input selection?"
+- refine the interaction model; it stays open and nags.
+
+
+Installation and Configuration
+==============================
+
+
+Development Prerequisites
+-------------------------
+
+Here are requirements and recommendations to set up before you get started.
+
+Python 3:
+    If you use a Mac, I recommend using Homebrew (https://brew.sh/) to augment your development environment, including the installation of Python 3.
+
+Virtualenv/Virtualenvwrapper:
+    Using some sort of "virtual environment" with Python allows you to use
+    separate Python runtime and library package environments for each of your
+    projects.
+
+    I use virtualenv (https://virtualenv.pypa.io/en/stable/) and the very
+    convenient helper package virtualenvwrapper (https://pypi.org/project/virtualenvwrapper/).
+            
+AWS Account:
+    AWS Accounts are Amazon.com logins that are extended for AWS use by visiting https://aws.amzon.com.
+    
+    Note: Alexa skills not intended for publication, like this one, are available on Echo devices registered to the AWS account
+    in which you set them up.  If you use an AWS account that is different than your normal home shopping and Alexa/Echo account,
+    you'll need to dedicate an Echo device to that account, to test and use the skill.
+
+    AWS tools allows you to manage more than one AWS account (or "Profile") and this project's configuration let's you select one,
+    and keeps certificates and keys sorted out among multiple accounts.
+
+    Learn about AWS enough to set up a secondary working login, rather than using your master account, and also set up 2-factor authentication.
+
+AWS CLI:
+    Install the AWS CLI to script and interactively explore or change anything in AWS (https://aws.amazon.com/cli/).
+
+Alexa Skills Kit account and CLI:
+    Visit https://developer.amazon.com/alexa-skills-kit and sign in to establish an Alexa development account.  Download the ASK CLI, which provides
+    very useful commands for setting up and developing Alexa skills.
+
+
+Project Configuration
+---------------------
+
+Once you clone this repository and set up and activate a virtualenv using python3, you can set up your configuration and start building the project.
+
+
+Install Python Package Dependencies;
+    This project does not include an installer.  To set up the necessary Python packages:
+
+    ``pip install -r REQUIREMENTS.txt``
+
+Customize Your Configuration:
+    #. Copy the file ``scripts/setup_environment_template.sh`` to a file named ``setup_environment.sh`` in the top-level directory.
+    #. Confirm that it is ignored by git, that is, that it won't be checked in, ever.
+    #. Customize your settings by changing the values of variables in ``setup_environment.sh``.  If you have one an only one AWS/ASK account setup, the default values in this file are probably fine. Otherwise set appropriate values for the variables ``AWS_PROFILE`` and ``ASK_DEFAULT_PROFILE`` (these are the variables the CLIs use, and they are not named consistently). 
+    #. Add these values to your environment::
+
+         source setup_environment.sh
+
+    If you use virtualenvwrapper 'mkproject' to set up an environment and working directory, this can be a useful
+    way to set up your 'postactivate' script::
+
+        #!/bin/bash
+        # This hook is sourced after every virtualenv is activated.
+
+        FILE=setup_environment.sh
+        if [ -f $FILE ]; then
+           echo "sourcing environment from $FILE"
+           source $FILE
+        fi
+
+
+AWS Cloud Setup
+===============
+There are a number of AWS entities to be set up, as described in the section `High Level Architecture`_ above,
+including an IoT Thing, Certificates, key pairs, policies, a
+Lambda function called when your voice skill is invoked, and the Alexa Skill
+itself, and various roles and other metadata.
+
+
+AWS IoT Setup
+-------------
+
+To set up all the IoT entities, run this script from the top level project directory, with your environment set up::
+
+    scripts/configure_aws_iot.py
+
+This script will print progress while it's setting stuff up. If you run it again, it won't do any more setup, but it will print out
+the details of your IoT setup for your review.
+
+You may wish to go to the AWS IoT console and interactively explore the resulting Thing, Certificate, Policy and their relationships. (https://console.aws.amazon.com/iot/home).
+
+Note that the setup script prints an AWS "endpoint" that will be needed at run time.  You should copy it to set the value of ``BAKERHOUSE_ENDPOINT`` in your ``setup_environment.sh`` file.  See comments in the file if you want to work with more than one AWS account profile, and have separate endpoints for each.
+
+
+Alexa Skill and Lambda Function Setup
+-------------------------------------
+
+The convenient way to setup and iterate development of an Alexa skill and its Lambda function is by using a "local project image" and the ASK CLI ``deploy`` command. For initial setup, run these commands::
+
+    cd src/skill        # this is the root of the local skill project
+    ask deploy          # the ASK CLI will set up the skill, Lambda, and everything else
+    ./post_deploy.py    # This script will fix up the created skill and Lambda 
+
+Later, as you edit your skill's voice interaction model, or the Lambda function, you invoke ``ask deploy`` again from that same directory, but you do not have to run ``post_deploy.py`` again.
+
+You can see the results of this configuration in the Alexa console (https://developer.amazon.com/alexa/console/ask) and in AWS Lambda (https://aws.amazon.com/lambda/).
+
 
 Resources
----------
+=========
 
-Prequisites
+Prerequisites
 
 * AWS Developer Signup
 * AWS IoT Servcice: Console, Documentation
