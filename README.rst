@@ -5,9 +5,9 @@ Baker House Project
 Introduction
 ============
 
-This is a home automation hobby project, to control whatever you want
-on a Raspberry Pi (for example) by voice, using Alexa, AWS Lambda and AWS IoT, all
-in Python.  In this implementation, we use the onkly-eiscp package to control
+This is a home automation hobby project, to control whatever you want to control on
+a Raspberry Pi (for example) by voice, using Alexa, AWS Lambda and AWS IoT, all
+in Python.  In this implementation, we use the onkyo-eiscp package to control
 an Onkly/Integra AV Receiver.
 
 It is a goal to make this as absolutely simple as possible.  At runtime, there
@@ -15,11 +15,11 @@ are only three Python files: a Lambda function in the cloud, the client side of 
 connection, and a simple server that provides a REST API to control the AV Receiver.
 
 Apart from a stripped-down Pyramid application for the REST service, there
-aren't any home automation or other frameworks.  Configuration is managed by a
+aren't any home automation or other frameworks.  Configuration is managed by
 environment variables exported from a setup file.
 
 While the code is very simple, setting up everything necessary in AWS/Alexa is
-not.  Tutorials walk us through a lot of clicking in consoles, creating
+not.  AWS and Alexa tutorials walk us through a lot of clicking in consoles, creating
 entities, downloading certificates and keys, selecting configurations, and
 associating or attaching them correctly.
 
@@ -33,13 +33,15 @@ development of the skill.
 By it's nature, this skill isn't something you would publish as is. It's a
 learning exercise and you can use the skill in your house to control your own stuff.
 
-But it only works if you have an Echo device registered to the AWS developer
-account to which you deployed the skill. If your home Echos are on a
+But that only works if you have an Echo device registered to the AWS developer
+account under which you deployed the skill. If your home Echos are on a
 separate, "consumer" account, you must either register one of the Echos to your AWS
-account, or you can add AWS  to your consumer account and deploy the skill to that.
+account, or you can add AWS to your consumer account and deploy the skill to that "profile."
 
-There's some more information on managing multiple AWS accounts TO BE PROVIDED,
-as I had to sort this out for myself.
+I took the path of developing under my AWS developer login, then re-deploying
+the work under my consumer account for use with my home Echos. Therefore the
+setup scripts work with multiple AWS and Alexa Skills Kit logins (or
+"profiles").
 
 High Level Architecture
 =======================
@@ -126,7 +128,12 @@ house_hub.py
     env PYTHONPATH="src" pserve --reload house_hub_paste.ini
 
 setup_environment_template.sh
-  Template for setting up your configuration parameters/secrets as per the `Project Configuration`_ section above.
+    Template for setting up your configuration parameters/secrets as per the `Project Configuration`_ section above.
+
+src/skill/
+    Alexa Skill "local project" including skills properties and the voice UI
+    interaction model.  The corresponding lambda function (house_lambda.py) is
+    also under this directory.  
 
 scripts/
     Various scripts for creating the AWS cloud entities and testing the various components.
@@ -141,7 +148,6 @@ To Do
 
 Installation and Configuration
 ==============================
-
 
 Development Prerequisites
 -------------------------
@@ -231,7 +237,7 @@ the details of your IoT setup for your review.
 
 You may wish to go to the AWS IoT console and interactively explore the resulting Thing, Certificate, Policy and their relationships. (https://console.aws.amazon.com/iot/home).
 
-Note that the setup script prints an AWS "endpoint" that will be needed at run time.  You should copy it to set the value of ``BAKERHOUSE_ENDPOINT`` in your ``setup_environment.sh`` file.  See comments in the file if you want to work with more than one AWS account profile, and have separate endpoints for each.
+Note that the setup script prints an AWS "endpoint" that will be needed at run time.  You should copy it to set the value of ``BAKERHOUSE_ENDPOINT`` in your ``setup_environment.sh`` file.  See comments in the file if you want to work with more than one AWS account profile and have separate endpoints for each.
 
 
 Alexa Skill and Lambda Function Setup
@@ -251,18 +257,30 @@ You can see the results of this configuration in the Alexa console (https://deve
 Resources
 =========
 
-Prerequisites
+Alexa Skill Developer
 
-* AWS Developer Signup
-* AWS IoT Servcice: Console, Documentation
-* Alexa Skill Developer Sign-up
-* Alexa Skill (new) Console
+*    General, Sign-up (https://developer.amazon.com/alexa-skills-kit)
+*    Alexa Skill (new) Console (https://developer.amazon.com/alexa/console/ask)
+*    Alexa Skill Kit CLI (requires Node.js) (https://developer.amazon.com/docs/smapi/ask-cli-command-reference.html)
 
-Project
+AWS
 
-* AWS General: CLI, Python binding - boto3
-* AWS IoT Python Library: Intro, API
-* REST Service: Pyramid, Cornice, Colander, Cornice_Swagger
-* Standard Python: requests, json, logging
-* Alexa Skill Kit CLI (requires Node.js)
+*    General (https://aws.amazon.com/)
+*    CLI (https://docs.aws.amazon.com/cli/latest/reference/)
+*    Python binding - boto3 (http://boto3.readthedocs.io/en/latest/index.html)
+*    AWS IoT Console (https://console.aws.amazon.com/iot/home)
+*    AWS IoT Python Library: Intro, API (https://github.com/aws/aws-iot-device-sdk-python)
 
+RESTful Service
+
+*    Pyramid (https://docs.pylonsproject.org/projects/pyramid/en/latest/)
+*    Cornice (REST) (https://cornice.readthedocs.io/en/latest/)
+*    Colander (schema definition) (https://docs.pylonsproject.org/projects/colander/en/latest/)
+
+Standard Python libraries
+
+*    requests (http://docs.python-requests.org/en/master/)
+*    JSON (https://docs.python.org/3/library/json.html)
+*    logging (https://docs.python.org/3/library/logging.html)
+
+Onkyo-eiscp (https://github.com/miracle2k/onkyo-eiscp)
