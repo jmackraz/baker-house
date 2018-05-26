@@ -74,7 +74,7 @@ Thing:
     state of the home system (volume, input selection).  In this case, our
     Lambda specifies the (*desired*) state of the volume to be 30.
 
-    When this happens, the Thing sends  *delta update message* to its connected *IoT Client*.
+    When this happens, the Thing sends a *delta update message* to its connected *IoT Client*.
 
 IoT Client:
     Back in your house, a Python program uses the AWS IoT Client API library
@@ -94,8 +94,7 @@ Hub Service:
 It's just that simple, except for one thing: Security.  There are a number of
 very different policies and certificates involved at each step, not to mention
 the AWS and ASK credentials you need to do development.  This is why the setup
-scripts are so helpful.  A listing of the security aspects of the project are
-TO BE PROVIDED.
+scripts are so helpful.  
 
 What's Here
 ===========
@@ -106,7 +105,7 @@ house_lambda.py
   by updating the device shadow corresponding to my home hub state.
 
   This file is found under the src/skill directory.  It is most conveniently updated
-  to the cloud using the "ask deploy" command.
+  to the cloud using the ``ask deploy`` command.
 
 house_iot.py
   This runs in the house, and connects as a client to AWS IoT. It receives 
@@ -181,9 +180,10 @@ AWS CLI:
     Install the AWS CLI to script and interactively explore or change anything in AWS (https://aws.amazon.com/cli/).
 
 Alexa Skills Kit account and CLI:
-    Visit https://developer.amazon.com/alexa-skills-kit and sign in to establish an Alexa development account.  Download the ASK CLI, which provides
-    very useful commands for setting up and developing Alexa skills.
-
+    Visit https://developer.amazon.com/alexa-skills-kit and sign in to
+    establish an Alexa development account.  Install the ASK CLI (it uses
+    Node.js, which you can install using Homebrew (``brew install node``). It
+    provides very useful commands for setting up and developing Alexa skills.
 
 Project Configuration
 ---------------------
@@ -252,6 +252,144 @@ The convenient way to setup and iterate development of an Alexa skill and its La
 Later, as you edit your skill's voice interaction model, or the Lambda function, you invoke ``ask deploy`` again from that same directory, but you do not have to run ``post_deploy.py`` again.
 
 You can see the results of this configuration in the Alexa console (https://developer.amazon.com/alexa/console/ask) and in AWS Lambda (https://aws.amazon.com/lambda/).
+
+Startup and Testing
+===================
+Let's turn everything on and test it. 
+#. The ``house_hub`` RESTful service and control of Onkyo/Integra AV receiver
+#. The AWS IoT "Thing" set up in isolation
+#. Connection from the AWS IoT Thing to our IoT client ``house_it`` and through to the ``house_hub`` service
+#. Direct scripted invocation of our Lambda function ``house_lambda``. [I don't have this yet, because I haven't figured out how to simulate the context and parameters passed to the Lambda by a call from Alexa.]
+#. Scripted test of our Alexa skill calling our Lambda and then all the way down to the ``house_hub``.
+#. End-to-end Voice control.
+
+All scripted tests run from the top-level project directory, after setting up the environment by executing ``source setup_environment.sh``.
+
+Starting and Testing the ``house_hub`` RESTful Service
+------------------------------------------------------
+
+In one terminal window, start the service.  There are two options.  The simplest is to just run the script::
+
+    src/house_hub.py
+
+The network port and logging configuration is defined in the script source. I
+use this method for "production," so log level is set to INFO.
+
+The other approach is to use the paste.deploy configuration file
+``house_hub_paste.ini`` and the Pyramid command ``pserve``.  This is good for
+development because it gives the option to have the server restart
+automatically every time you modify the source code.  Like so::
+
+    env PYTHONPATH="src" pserve --reload house_hub_paste.ini
+
+With this method, the port and logging level are configured in the
+house_paste.ini file, and I have the log level set to DEBUG.
+
+Choose a method and start the server.
+
+Test the server using the command::
+
+    src/test_home_hub.py
+
+If you have an Onkyo or Integra AV receiver connected to the same network as your
+development computer, you should see the receiver input switch to 'CD' but be
+reported as 'sonos' because I have my Sonos node plugged into the CD input
+jack.  It will also turn the volume to level 20 (low).
+
+You can stop the server by typing Control-C in the terminal window.
+
+AWS IoT Thing Configuration
+---------------------------
+    
+Before we start our local IoT daemon, we test the IoT configuration with a simple standalone script::
+
+    scripts/test_iot.py
+
+This script connects to AWS IoT and listens for changes to our Thing's "device
+shadow."  Every few seconds, the script posts a change in volume level.  When
+AWS IoT echoes that change to the device shadow with a "device shadow delta"
+message, the message is printed.  AWS seems to "miss" some changes, but it
+should always echo back the final value that was posted.
+
+IoT Client house_iot.py
+-----------------------
+
+It's time to start the IoT client.  If the house_hub service is running, you
+will see it logging the polling GET requests that the house_iot client makes.
+The tests may control your Onkyo.  If house_hub is not running, you'll see
+error messages from the house_iot daemon.
+
+In one terminal window start the client:
+
+    src/house_iot.py
+
+Now we'll programmatically issue a change to the IoT Thing device shadow in the
+cloud, and we should see the change received by our local house_iot client, and
+passed along to house_hub.
+
+In another window, run::
+
+    scripts/poke_iot.py
+
+That command should succeed in connecting to AWS IoT and changing the input value, and
+you should see the change cascade down to the house_iot client, then to the house_hub 
+service, and ultimate, to your Onkyo.  If all this works but your Onkyo isn't turning on 
+or otherwise responding to commands, check out the eiscp README: https://github.com/miracle2k/onkyo-eiscp
+
+
+Go For It
+---------
+
+With an Echo device that is registered to the same account used for your AWS development, speak::
+
+    "Alexa, ask Baker House to select sonos."
+
+This should turn your receiver on, if necessary, and select the "CD" input (into which I connected my Sonos node).
+
+I have not successfully figured out the "session" concept. Alexa will nag you
+to: "Set volume to 40" until you say "Stop" or it gives up and replies, "Thank
+you."  Sorry; I'll work on that.
+
+What Now?
+=========
+
+If you have an Onkyo or Integra receiver, you can enjoy voice control of input selection or volume.  You can follow and/or help 
+add new commands and state queries by modifying the skill's interaction model and the implementation within house_hub.py.
+
+If you don't have such a receiver, you can tear up house_hub.py to create a REST API for whatever else you can do in Python that you'd like to control using Alexa.
+You will change the voice user interface by editing the local interaction model, ``src/skill/models/en-US.json`` or figuring out how to use the Alexa console editor on the web.
+
+Deploying
+=========
+
+You may want to run the house_iot client and the house_hub service on some other computer, such as a Raspberry Pi.  The important part is this::
+
+    The AWS IoT certificates and keys are copied to your deployment machine, but your AWS and ASK account credentials are not.
+
+#. Stop the house_iot client and house_hub service on your development box.
+#. Set up python3 and virtualenv/helper on your Pi, as in `Development Prerequisites`_
+#. Clone this git project on the Pi. You could probably copy just the src/ directory from your development machine, but I like to be able to hot fixes under git for hobby projects.
+#. Do NOT set up AWS or ASK CLI or credentials on the Pi.  You cannot run the poke_iot.py test without those credentials, but other tests should work.
+#. Set up the `Project Configuration`_ using the same setup_environment.sh file that you used on your development machine to configure and test.
+#. With the virtualenv and environment variables set up, start house_hub and house_iot as described above.
+
+The problem with starting the client and hub service in tty/ssh windows is that they will stop running when you disconnect. Rather than figure out how to run these services as daemons, I use the fantastic ``screen`` utility that is available (standard?) on Linux and Mac OS. https://www.gnu.org/software/screen/manual/screen.html and https://www.tecmint.com/screen-command-examples-to-manage-linux-terminals/.
+
+Here is a quick sequence with minimal explanation.
+#. Log into pi using ssh in a terminal (from your development machine).
+#. Start a named screen session with a large scrollback buffer::
+
+    screen -h 1000 -D -R baker-house
+
+#. Create a second virtual window using screen commands: ``Ctrl-a w``
+#. See that you can toggle between the windows. First run ``ls`` or something in one window,
+   then type: ``Ctrl-a Ctrl-a`` a couple of times.  Type ``Ctrl-a "`` to see a
+   pick-list of windows.
+#. In each of the two screen windows, setup your environment and start the house_iot client in one and the house_hub server in the other.
+#. Detach from the screen session: ``Ctrl-a d``
+#. See that your screen session still exists: ``screen -ls``
+#. Reattach to the screen session: ``screen -D -R baker-house``
+
 
 
 Resources
