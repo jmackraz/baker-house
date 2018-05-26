@@ -233,5 +233,5 @@ def openAPI_spec(request):
 if __name__ == "__main__":
     # execute only if run as a script
     #
-    #logging.getLogger('waitress').setLevel(logging.DEBUG)
+    logging.getLogger('waitress').setLevel(logging.INFO)
     serve(create_wsgi_app(None), listen='*:6543')

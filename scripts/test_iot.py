@@ -74,5 +74,5 @@ for volume_level in [10, 12, 14, 16, 13]:
     response_payload = {'state': {'desired': {'volume': volume_level}}}
     shadow_handler.shadowUpdate(json.dumps(response_payload), None, 5)
 
-print("done. waiting for callbacks")
-time.sleep(5)
+print("done. waiting for callbacks (ctrl-C to quit)")
+time.sleep(60)

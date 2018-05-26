@@ -114,7 +114,6 @@ class IoTConfig:
                 f.write(res.text)
         print("root cert saved to:", self.root_cert_file)
 
-        # Checking whether you have ANY certs set up, in which case we bail.
         res = self.iot.list_certificates()
 
         #### THIS IS NOT GOOD ENOUGH

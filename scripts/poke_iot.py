@@ -9,7 +9,7 @@ import boto3
 
 thing_name = environ['BAKERHOUSE_IOT_THING']
 
-state_json='{"input" : "magic", "volume" : 49}'
+state_json='{"input" : "directv", "volume" : 29}'
 
 def poke(desired_state_json):
 
