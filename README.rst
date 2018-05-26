@@ -256,6 +256,7 @@ You can see the results of this configuration in the Alexa console (https://deve
 Startup and Testing
 ===================
 Let's turn everything on and test it. 
+
 #. The ``house_hub`` RESTful service and control of Onkyo/Integra AV receiver
 #. The AWS IoT "Thing" set up in isolation
 #. Connection from the AWS IoT Thing to our IoT client ``house_it`` and through to the ``house_hub`` service
@@ -376,12 +377,13 @@ You may want to run the house_iot client and the house_hub service on some other
 The problem with starting the client and hub service in tty/ssh windows is that they will stop running when you disconnect. Rather than figure out how to run these services as daemons, I use the fantastic ``screen`` utility that is available (standard?) on Linux and Mac OS. https://www.gnu.org/software/screen/manual/screen.html and https://www.tecmint.com/screen-command-examples-to-manage-linux-terminals/.
 
 Here is a quick sequence with minimal explanation.
+
 #. Log into pi using ssh in a terminal (from your development machine).
 #. Start a named screen session with a large scrollback buffer::
 
     screen -h 1000 -D -R baker-house
 
-#. Create a second virtual window using screen commands: ``Ctrl-a w``
+#. Create a second virtual window within the screen session: ``Ctrl-a w``
 #. See that you can toggle between the windows. First run ``ls`` or something in one window,
    then type: ``Ctrl-a Ctrl-a`` a couple of times.  Type ``Ctrl-a "`` to see a
    pick-list of windows.
