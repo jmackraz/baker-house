@@ -363,9 +363,9 @@ You will change the voice user interface by editing the local interaction model,
 Deploying
 =========
 
-You may want to run the house_iot client and the house_hub service on some other computer, such as a Raspberry Pi.  The important part is this::
+You may want to run the house_iot client and the house_hub service on some other computer, such as a Raspberry Pi.  The important part is this:
 
-    The AWS IoT certificates and keys are copied to your deployment machine, but your AWS and ASK account credentials are not.
+**The AWS IoT certificates and keys are copied to your deployment machine, but your AWS and ASK account credentials are not.**
 
 #. Stop the house_iot client and house_hub service on your development box.
 #. Set up python3 and virtualenv/helper on your Pi, as in `Development Prerequisites`_
