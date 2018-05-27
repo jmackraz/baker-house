@@ -3,6 +3,7 @@
 """
 import logging
 from datetime import datetime
+from time import sleep
 import locale
 
 import colander
@@ -14,6 +15,7 @@ from cornice_swagger import CorniceSwagger
 from waitress import serve
 
 import eiscp
+from eiscp.core import command_to_iscp
 
 log = logging.getLogger(__name__)
 # inherit root
@@ -52,6 +54,7 @@ class ReceiverControlSchema(colander.MappingSchema):
     """definition of REST control payload"""
     input_node = colander.SchemaNode(colander.String(), name="input", missing=colander.drop)
     volume = colander.SchemaNode(colander.Int(), missing=colander.drop)
+    power = colander.SchemaNode(colander.String(), missing=colander.drop)
 
 _CONTROL=None
 _RECEIVER_IP=None
@@ -116,7 +119,7 @@ class OnkyoRemoteControl:
         global _CONTROL
         if not _CONTROL:
             log.debug("initialize _CONTROL")
-            _CONTROL={'input': 'none', 'volume': 0}
+            _CONTROL={'input': 'none', 'volume': 0, 'power': 'off'}
             # get current values from hardware
             self.refresh()
 
@@ -133,7 +136,6 @@ class OnkyoRemoteControl:
 
         # clean up input payload, according to schema
         knobs = self.request.validated
-
 
         with eiscp.eISCP(_RECEIVER_IP) as receiver:
 
@@ -154,13 +156,26 @@ class OnkyoRemoteControl:
                 # low-tech aliasing
                 knobs['input'] = self.selection_alias(knobs['input'])
 
-                #if knobs['input'] == 'sonos':
-                #    knobs['input'] = 'cd'
-                #elif knobs['input'] == "directv":
-                #    knobs['input'] = "sat"
-
                 response = receiver.command('input-selector', [knobs['input']], zone='main')
                 self._update_from_response(response)
+
+            if 'power' in knobs:
+                log.info("set receiver power: %s", knobs['power'])
+
+                new_power_state=knobs['power']
+                if new_power_state == 'off':
+                    # won't get a response when turning off, so do async
+                    iscp_message = command_to_iscp('system-power', [new_power_state], zone='main')
+                    response = receiver.send(iscp_message)
+                    sleep(1)
+
+                    # CAN do a query when it's off without timing out, so
+                    # do this to get freshest state
+                    response = receiver.command('system-power', ['query'], zone='main')
+                    self._update_from_response(response)
+                else:
+                    response = receiver.command('system-power', [new_power_state], zone='main')
+                    self._update_from_response(response)
 
         return _CONTROL
 
@@ -180,6 +195,9 @@ class OnkyoRemoteControl:
             self._update_from_response(response)
 
             response = receiver.command('master-volume', ['query'], zone='main')
+            self._update_from_response(response)
+
+            response = receiver.command('system-power', ['query'], zone='main')
             self._update_from_response(response)
 
     def _update_last_modify_time(self):
@@ -202,7 +220,6 @@ class OnkyoRemoteControl:
             log.debug("current _CONTROL: %s", _CONTROL)
             input_source = self.response_alias(msg['input-selector'])
 
-
             if _CONTROL['input'] != input_source:
                 log.debug("msg: %s", msg)
                 log.info("remembering input as: %s", str(input_source))
@@ -213,6 +230,16 @@ class OnkyoRemoteControl:
             if _CONTROL['volume'] != msg['master-volume']:
                 log.info("remembering volume as: %s", msg['master-volume'])
                 _CONTROL['volume'] = msg['master-volume']
+                self._update_last_modify_time()
+
+        if 'system-power' in msg:
+            if _CONTROL['power'] != msg['system-power']:
+                log.info("current power statue: %s", msg['system-power'])
+                if 'off' in msg['system-power']:
+                    _CONTROL['power'] = 'off'
+                else:
+                    _CONTROL['power'] = 'on'
+
                 self._update_last_modify_time()
 
 
