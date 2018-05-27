@@ -14,6 +14,7 @@ from __future__ import print_function
 import logging
 import boto3
 import json
+from os import environ
 
 from sys import stdout
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
