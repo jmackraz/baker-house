@@ -141,8 +141,6 @@ scripts/
 To Do
 =====
 
-- add receiver power control
-
 - improve card titles, etc.
 - not using session attributes, but it's still wrong
 
