@@ -35,24 +35,26 @@ thing_name = 'NOT_SET'
 
 # --------------- Helpers that build all of the responses ----------------------
 
-def build_speechlet_response(title, output, reprompt_text, should_end_session):
-    return {
+def build_response(session_attributes, title, output, reprompt_text, should_end_session):
+    speechlet_response =  {
         'outputSpeech': { 'type': 'PlainText', 'text': output },
         'card': { 'type': 'Simple',
             'title': "SessionSpeechlet - " + title,
             'content': "SessionSpeechlet - " + output
         },
-        'reprompt': { 'outputSpeech': { 'type': 'PlainText', 'text': reprompt_text } },
         'shouldEndSession': should_end_session
     }
 
+    if reprompt_text is not None:
+        speechlet_response['reprompt'] =  { 'outputSpeech': { 'type': 'PlainText', 'text': reprompt_text } }
 
-def build_response(session_attributes, speechlet_response):
     return {
         'version': '1.0',
         'sessionAttributes': session_attributes,
         'response': speechlet_response
     }
+
+
 
 
 def numeric_slot_value(slot):
@@ -80,22 +82,23 @@ def intent_slot(intent, slot_name):
 
 # --------------- INTENTS ------------------
 
+general_prompt = "You can select and input source or change the volume."
 input_select_prompt =  "You can select an input source by saying, select input sonos"
 volume_level_prompt =  "You can select the volume level by saying, volume 40"
 
 def welcome_intent():
-    """ If we wanted to initialize the session to have some attributes we could
-    add those here
+    """ Called when the user launches the skill without specifying what they want.
+    If we wanted to initialize the session to have some attributes we could
+    add those here.
     """
 
     session_attributes = {}
     card_title = "Welcome"
-    speech_output = "Welcome to the Baker House. " + input_select_prompt
-    reprompt_text = input_select_prompt
+    speech_output = "Welcome to the Baker House. " + general_prompt
+    reprompt_text = general_prompt
     should_end_session = False
 
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
 def cancel_intent():
@@ -103,8 +106,7 @@ def cancel_intent():
     speech_output = "Thank you, good bye!"
     should_end_session = True
 
-    return build_response({}, build_speechlet_response(
-        card_title, speech_output, None, should_end_session))
+    return build_response({}, card_title, speech_output, None, should_end_session)
 
 
 def select_input(intent, session):
@@ -122,7 +124,8 @@ def select_input(intent, session):
         log.debug("inputs selection value: %s", input_selection)
 
         speech_output = "Setting input source to {}".format(input_selection)
-        reprompt_text = input_select_prompt
+        #reprompt_text = volume_level_prompt
+        reprompt_text = None
 
         # update the IoT device shadow
         payload = json.dumps( { 'state': { 'desired': {'input': input_selection}}} )
@@ -131,11 +134,10 @@ def select_input(intent, session):
         client.update_thing_shadow(thingName=thing_name, payload=payload)
 
     else:
-        speech_output = "I didn't understand your selection. Please try again."
-        reprompt_text = "I didn't understand your selection." + input_select_prompt
+        speech_output = "I didn't understand your selection. Please try again." + input_selection
+        reprompt_text = None
 
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
 
@@ -159,13 +161,14 @@ def set_volume(intent, session):
         client.update_thing_shadow(thingName=thing_name, payload=payload)
 
         speech_output = "Volume level set to {}".format(volume_level)
-        reprompt_text = volume_level_prompt
+        #reprompt_text = input_select_prompt
+        reprompt_text = None
     else:
-        speech_output = "I didn't understand your selection. Please try again."
-        reprompt_text = "I didn't understand your selection." + volume_level_prompt
+        speech_output = "I didn't understand your selection. Please try again." + volume_level_prompt
+        #reprompt_text = "I didn't understand your selection." + volume_level_prompt
+        reprompt_text = None
 
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session))
 
 
 # --------------- EVENTS ------------------
@@ -229,13 +232,20 @@ def lambda_handler(event, context):
         return
 
     """
-    Uncomment this if statement and populate with your skill's application ID to
+    Uncomment this block and populate with your skill's application ID to
     prevent someone else from configuring a skill that sends requests to this
     function.
     """
-    # if (event['session']['application']['applicationId'] !=
-    #         "amzn1.echo-sdk-ams.app.[unique-value-here]"):
-    #     raise ValueError("Invalid Application ID")
+
+    log.info("invoking applicationId: %s", event['session']['application']['applicationId'])
+    skill_app_id = "amzn1.echo-sdk-ams.app.[unique-value-here]"
+    # ZZZ: will need to configure this from the environment config
+
+    perform_app_id_check = False
+    if  perform_app_id_check:
+        if (event['session']['application']['applicationId'] !=
+                "amzn1.echo-sdk-ams.app.[unique-value-here]"):
+            raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
         on_session_started({'requestId': event['request']['requestId']},

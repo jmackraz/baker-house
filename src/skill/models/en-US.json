@@ -49,11 +49,6 @@
           "values": [
             {
               "name": {
-                "value": "satellite"
-              }
-            },
-            {
-              "name": {
                 "value": "dvd"
               }
             },
@@ -64,7 +59,10 @@
             },
             {
               "name": {
-                "value": "directv"
+                "value": "directv",
+                "synonyms": [
+                    "direct tv", "satellite"
+                ]
               }
             },
             {
