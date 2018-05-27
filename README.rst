@@ -141,8 +141,11 @@ scripts/
 To Do
 =====
 
+- refine the interaction model; the session stays open and nags.
+- add incremental/relative volume command
+- add receiver power control
 - support "Alexa ... what is the current volume/input selection?"
-- refine the interaction model; it stays open and nags.
+- recognize "direct tv" not just "directuhvuh"
 
 
 Installation and Configuration
