@@ -100,6 +100,14 @@
                         },
                         {
                             "name": {
+                                "value": "cd",
+                                "synonyms": [
+                                    "c d"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
                                 "value": "dvd"
                             }
                         },
@@ -110,7 +118,10 @@
                         },
                         {
                             "name": {
-                                "value": "directv"
+                                "value": "directv",
+                                "synonyms": [
+                                    "direct tv"
+                                ]
                             }
                         },
                         {

@@ -134,7 +134,7 @@ def select_input(intent, session):
 
         speech_output = "Setting input source to {}".format(input_selection)
         #reprompt_text = volume_level_prompt
-        reprompt_text = None
+        reprompt_text = ""
 
         # update the IoT device shadow
         payload = json.dumps( { 'state': { 'desired': {'input': input_selection}}} )
@@ -143,14 +143,39 @@ def select_input(intent, session):
         client.update_thing_shadow(thingName=thing_name, payload=payload)
 
     else:
-        speech_output = "I didn't understand your selection. Please try again." + input_selection
-        reprompt_text = None
+        speech_output = "I didn't understand your selection. Please try again."
+        reprompt_text = ""
 
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
 def power_control(intent, session):
     """change desired power state to on or off"""
+    card_title = intent['name']
+    session_attributes = {}
+    should_end_session = False
+
+    power_state = None
+    slot = intent_slot(intent, 'power_state')
+    power_state = validated_slot_value(slot)
+
+    if power_state is not None:
+        log.debug("power state: %s", power_state)
+
+        speech_output = "Turning power {}".format(power_state)
+        reprompt_text = ""
+
+        # update the IoT device shadow
+        payload = json.dumps( { 'state': { 'desired': {'power': power_state}}} )
+
+        client=boto3.client('iot-data')
+        client.update_thing_shadow(thingName=thing_name, payload=payload)
+
+    else:
+        speech_output = "I didn't understand your selection. Please try again."
+        reprompt_text = ""
+
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
     pass
 
 def _get_volume_level():
@@ -170,7 +195,7 @@ def query_volume(intent, session):
 
     current_volume_level = _get_volume_level()
     speech_output = "The volume level is {}".format(current_volume_level)
-    reprompt_text = None
+    reprompt_text = ""
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
@@ -207,7 +232,7 @@ def relative_volume(intent, session):
     client.update_thing_shadow(thingName=thing_name, payload=payload)
 
     speech_output = "Changing volume level by {}, to {}".format(volume_change, volume_level)
-    reprompt_text = None
+    reprompt_text =""
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 def set_volume(intent, session):
@@ -231,11 +256,11 @@ def set_volume(intent, session):
 
         speech_output = "Volume level set to {}".format(volume_level)
         #reprompt_text = input_select_prompt
-        reprompt_text = None
+        reprompt_text = ""
     else:
         speech_output = "I didn't understand your selection. Please try again." + volume_level_prompt
         #reprompt_text = "I didn't understand your selection." + volume_level_prompt
-        reprompt_text = None
+        reprompt_text = ""
 
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
