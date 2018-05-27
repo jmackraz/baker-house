@@ -141,11 +141,10 @@ scripts/
 To Do
 =====
 
-- refine the interaction model; the session stays open and nags.
-- add incremental/relative volume command
 - add receiver power control
-- support "Alexa ... what is the current volume/input selection?"
-- recognize "direct tv" not just "directuhvuh"
+
+- improve card titles, etc.
+- not using session attributes, but it's still wrong
 
 
 Installation and Configuration

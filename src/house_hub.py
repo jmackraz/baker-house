@@ -97,7 +97,7 @@ class OnkyoRemoteControl:
             log.debug("check cached IP")
             receiver = eiscp.eISCP(_RECEIVER_IP)
 
-            if not receiver or 'unknown' in receiver.info:
+            if receiver is None or receiver.info is None or 'unknown' in receiver.info:
                 # re-discover
                 log.debug("cached IP didn't work, re-discover")
                 _RECEIVER_IP = None

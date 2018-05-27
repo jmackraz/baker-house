@@ -56,13 +56,22 @@ def build_response(session_attributes, title, output, reprompt_text, should_end_
 
 
 
-
 def numeric_slot_value(slot):
     if slot is not None:
         num_value = slot['value']
         if num_value != "?":
-            return num_value
+            return int(num_value)
     return None
+
+def string_slot_value(slot):
+    #log.debug("string_slot_value - slot: %s", slot)
+    str_value = None
+    if slot is not None:
+        str_value = slot['value']
+        log.debug("string_slot_value - slot: %s value: %s", slot['name'], slot['value'])
+    else:
+        log.debug("string_slot_value - slot is None")
+    return str_value
 
 
 def validated_slot_value(slot):
@@ -140,6 +149,66 @@ def select_input(intent, session):
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
+def power_control(intent, session):
+    """change desired power state to on or off"""
+    pass
+
+def _get_volume_level():
+    client=boto3.client('iot-data')
+    response = client.get_thing_shadow(thingName=thing_name)
+    streamingBody = response["payload"]
+    shadow_state = json.loads(streamingBody.read())
+    log.debug("shadow_state: %s", shadow_state)
+
+    return int(shadow_state['state']['reported']['volume'])
+
+def query_volume(intent, session):
+    """query current volume from the thing shadow, and set an adjusted level"""
+    card_title = intent['name']
+    session_attributes = {}
+    should_end_session = False
+
+    current_volume_level = _get_volume_level()
+    speech_output = "The volume level is {}".format(current_volume_level)
+    reprompt_text = None
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
+
+
+def relative_volume(intent, session):
+    """query current volume from the thing shadow, and set an adjusted level"""
+    card_title = intent['name']
+    session_attributes = {}
+    should_end_session = False
+
+    current_volume_level = _get_volume_level()
+
+    # change by how much?
+    volume_change_slot = intent_slot(intent, 'volume_level_change')
+    if volume_change_slot is None:
+        volume_change = 10  # TODO: allow sticky override of hardcoded default
+    else:
+        volume_change = numeric_slot_value(volume_change_slot)
+
+    # raise or lower volume?
+    raise_lower_slot = intent_slot(intent, 'raise_lower')
+    if raise_lower_slot is None:
+        return build_response(session_attributes, card_title, "Hm.", None, should_end_session)
+    rl_val = string_slot_value(raise_lower_slot)
+
+    log.debug("rl_val: %s", rl_val)
+    if rl_val == 'lower':
+        volume_change = -volume_change
+
+    # set volume level
+    volume_level = current_volume_level+volume_change
+
+    payload = json.dumps( { 'state': { 'desired': {'volume': volume_level}}} )
+    client=boto3.client('iot-data')
+    client.update_thing_shadow(thingName=thing_name, payload=payload)
+
+    speech_output = "Changing volume level by {}, to {}".format(volume_change, volume_level)
+    reprompt_text = None
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 def set_volume(intent, session):
     """ set receiver volume (may be capped). """
@@ -168,7 +237,7 @@ def set_volume(intent, session):
         #reprompt_text = "I didn't understand your selection." + volume_level_prompt
         reprompt_text = None
 
-    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session))
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
 # --------------- EVENTS ------------------
@@ -201,6 +270,12 @@ def on_intent(intent_request, session):
         return set_volume(intent, session)
     elif intent_name == "select_input":
         return select_input(intent, session)
+    elif intent_name == "query_volume":
+        return query_volume(intent, session)
+    elif intent_name == "relative_volume":
+        return relative_volume(intent, session)
+    elif intent_name == "power_control":
+        return power_control(intent, session)
 
     elif intent_name == "AMAZON.HelpIntent":
         return welcome_intent()

@@ -1,79 +1,203 @@
 {
-  "interactionModel": {
-    "languageModel": {
-      "invocationName": "baker house",
-      "intents": [
-        {
-          "name": "AMAZON.CancelIntent",
-          "samples": []
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "baker house",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "select_input",
+                    "slots": [
+                        {
+                            "name": "input_selection",
+                            "type": "input_source"
+                        }
+                    ],
+                    "samples": [
+                        "show {input_selection}",
+                        "play {input_selection}",
+                        "set input to {input_selection}",
+                        "select {input_selection} "
+                    ]
+                },
+                {
+                    "name": "set_volume",
+                    "slots": [
+                        {
+                            "name": "volume_level",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "volume {volume_level}",
+                        "set volume to {volume_level}"
+                    ]
+                },
+                {
+                    "name": "query_volume",
+                    "slots": [],
+                    "samples": [
+                        "Tell me the volume",
+                        "Tell me the volume level",
+                        "What's the volume",
+                        "What is the volume"
+                    ]
+                },
+                {
+                    "name": "relative_volume",
+                    "slots": [
+                        {
+                            "name": "raise_lower",
+                            "type": "raise_lower",
+                            "samples": [
+                                "{raise_lower}"
+                            ]
+                        },
+                        {
+                            "name": "volume_level_change",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "make it {raise_lower} by {volume_level_change}",
+                        "make it {raise_lower}",
+                        "{raise_lower} the volume {volume_level_change}"
+                    ]
+                },
+                {
+                    "name": "power_control",
+                    "slots": [
+                        {
+                            "name": "power_state",
+                            "type": "on_off"
+                        }
+                    ],
+                    "samples": [
+                        "turn {power_state}",
+                        "power {power_state}",
+                        "turn power {power_state}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "input_source",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "satellite"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "dvd"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "fire tv"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "directv"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "sonos"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "raise_lower",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "lower",
+                                "synonyms": [
+                                    "quieter",
+                                    "decrease"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "raise",
+                                "synonyms": [
+                                    "higher",
+                                    "louder",
+                                    "increase"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "on_off",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "off"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "on"
+                            }
+                        }
+                    ]
+                }
+            ]
         },
-        {
-          "name": "AMAZON.HelpIntent",
-          "samples": []
+        "dialog": {
+            "intents": [
+                {
+                    "name": "relative_volume",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "raise_lower",
+                            "type": "raise_lower",
+                            "confirmationRequired": false,
+                            "elicitationRequired": true,
+                            "prompts": {
+                                "elicitation": "Elicit.Slot.833466598303.75337063554"
+                            }
+                        },
+                        {
+                            "name": "volume_level_change",
+                            "type": "AMAZON.NUMBER",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        }
+                    ]
+                }
+            ]
         },
-        {
-          "name": "AMAZON.StopIntent",
-          "samples": []
-        },
-        {
-          "name": "select_input",
-          "slots": [
+        "prompts": [
             {
-              "name": "input_selection",
-              "type": "input_source"
-            }
-          ],
-          "samples": [
-            "show {input_selection}",
-            "play {input_selection}",
-            "set input to {input_selection}",
-            "select {input_selection} "
-          ]
-        },
-        {
-          "name": "set_volume",
-          "slots": [
-            {
-              "name": "volume_level",
-              "type": "AMAZON.NUMBER"
-            }
-          ],
-          "samples": [
-            "volume {volume_level}",
-            "set volume to {volume_level}"
-          ]
-        }
-      ],
-      "types": [
-        {
-          "values": [
-            {
-              "name": {
-                "value": "dvd"
-              }
-            },
-            {
-              "name": {
-                "value": "fire tv"
-              }
-            },
-            {
-              "name": {
-                "value": "directv",
-                "synonyms": [
-                    "direct tv", "satellite"
+                "id": "Elicit.Slot.833466598303.75337063554",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "Raise or lower the volume?"
+                    }
                 ]
-              }
-            },
-            {
-              "name": {
-                "value": "sonos"
-              }
             }
-          ],
-          "name": "input_source"
-        }
-      ]
+        ]
     }
-  }
 }
