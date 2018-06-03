@@ -36,8 +36,14 @@ thing_name = 'NOT_SET'
 # --------------- Helpers that build all of the responses ----------------------
 
 def build_response(session_attributes, title, output, reprompt_text, should_end_session):
+
+    session_debug_message = "ENDING SESSION" if should_end_session else "KEEPING SESSION OPEN"
+    log.debug(session_debug_message)
+
+    
+
     speechlet_response =  {
-        'outputSpeech': { 'type': 'PlainText', 'text': output },
+        'outputSpeech': { 'type': 'PlainText', 'text': output},
         'card': { 'type': 'Simple',
             'title': "SessionSpeechlet - " + title,
             'content': "SessionSpeechlet - " + output
@@ -95,35 +101,38 @@ general_prompt = "You can select and input source or change the volume."
 input_select_prompt =  "You can select an input source by saying, select input sonos"
 volume_level_prompt =  "You can select the volume level by saying, volume 40"
 
-def welcome_intent():
+def welcome_intent(session_attributes):
     """ Called when the user launches the skill without specifying what they want.
     If we wanted to initialize the session to have some attributes we could
     add those here.
     """
 
-    session_attributes = {}
+    session_attributes['baker_is_open'] = True
+
     card_title = "Welcome"
-    speech_output = "Welcome to the Baker House. " + general_prompt
+    speech_output = "Hi."
     reprompt_text = general_prompt
     should_end_session = False
 
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
-def cancel_intent():
+def cancel_intent(session_attributes):
     card_title = "Session Ended"
-    speech_output = "Thank you, good bye!"
+    speech_output = "Bye."
     should_end_session = True
 
     return build_response({}, card_title, speech_output, None, should_end_session)
 
 
-def select_input(intent, session):
+def keep_baker_open(session_attributes):
+    return  session_attributes.get('baker_is_open', False)
+
+def select_input(intent, session_attributes):
     """ select receiver input source """
 
     card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
+    should_end_session = not keep_baker_open(session_attributes)
 
     input_selection = None
     slot = intent_slot(intent, 'input_selection')
@@ -149,11 +158,39 @@ def select_input(intent, session):
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
-def power_control(intent, session):
+def power_control(intent, session_attributes):
     """change desired power state to on or off"""
     card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
+    should_end_session = not keep_baker_open(session_attributes)
+
+    input_selection = None
+    slot = intent_slot(intent, 'input_selection')
+    input_selection = validated_slot_value(slot)
+
+    if input_selection is not None:
+        log.debug("inputs selection value: %s", input_selection)
+
+        speech_output = "Setting input source to {}".format(input_selection)
+        #reprompt_text = volume_level_prompt
+        reprompt_text = ""
+
+        # update the IoT device shadow
+        payload = json.dumps( { 'state': { 'desired': {'input': input_selection}}} )
+
+        client=boto3.client('iot-data')
+        client.update_thing_shadow(thingName=thing_name, payload=payload)
+
+    else:
+        speech_output = "I didn't understand your selection. Please try again."
+        reprompt_text = ""
+
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
+
+
+def power_control(intent, session_attributes):
+    """change desired power state to on or off"""
+    card_title = intent['name']
+    should_end_session = not keep_baker_open(session_attributes)
 
     power_state = None
     slot = intent_slot(intent, 'power_state')
@@ -171,6 +208,10 @@ def power_control(intent, session):
         client=boto3.client('iot-data')
         client.update_thing_shadow(thingName=thing_name, payload=payload)
 
+
+        if power_state == 'off':
+            should_end_session = True
+
     else:
         speech_output = "I didn't understand your selection. Please try again."
         reprompt_text = ""
@@ -187,11 +228,55 @@ def _get_volume_level():
 
     return int(shadow_state['state']['reported']['volume'])
 
-def query_volume(intent, session):
+def query_volume(intent, session_attributes):
     """query current volume from the thing shadow, and set an adjusted level"""
     card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
+    should_end_session = not keep_baker_open(session_attributes)
+
+    current_volume_level = _get_volume_level()
+    speech_output = "The volume level is {}".format(current_volume_level)
+    should_end_session = not keep_baker_open(session_attributes)
+
+    power_state = None
+    slot = intent_slot(intent, 'power_state')
+    power_state = validated_slot_value(slot)
+
+    if power_state is not None:
+        log.debug("power state: %s", power_state)
+
+        speech_output = "Turning power {}".format(power_state)
+        reprompt_text = ""
+
+        # update the IoT device shadow
+        payload = json.dumps( { 'state': { 'desired': {'power': power_state}}} )
+
+        client=boto3.client('iot-data')
+        client.update_thing_shadow(thingName=thing_name, payload=payload)
+
+
+        if power_state == 'off':
+            should_end_session = True
+
+    else:
+        speech_output = "I didn't understand your selection. Please try again."
+        reprompt_text = ""
+
+    return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
+    pass
+
+def _get_volume_level():
+    client=boto3.client('iot-data')
+    response = client.get_thing_shadow(thingName=thing_name)
+    streamingBody = response["payload"]
+    shadow_state = json.loads(streamingBody.read())
+    log.debug("shadow_state: %s", shadow_state)
+
+    return int(shadow_state['state']['reported']['volume'])
+
+def query_volume(intent, session_attributes):
+    """query current volume from the thing shadow, and set an adjusted level"""
+    card_title = intent['name']
+    should_end_session = not keep_baker_open(session_attributes)
 
     current_volume_level = _get_volume_level()
     speech_output = "The volume level is {}".format(current_volume_level)
@@ -199,11 +284,10 @@ def query_volume(intent, session):
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
 
-def relative_volume(intent, session):
+def relative_volume(intent, session_attributes):
     """query current volume from the thing shadow, and set an adjusted level"""
     card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
+    should_end_session = not keep_baker_open(session_attributes)
 
     current_volume_level = _get_volume_level()
 
@@ -235,12 +319,11 @@ def relative_volume(intent, session):
     reprompt_text =""
     return build_response(session_attributes, card_title, speech_output, reprompt_text, should_end_session)
 
-def set_volume(intent, session):
+def set_volume(intent, session_attributes):
     """ set receiver volume (may be capped). """
 
     card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
+    should_end_session = not keep_baker_open(session_attributes)
 
     # the value is "?" if it's given bogus input
     slot = intent_slot(intent, 'volume_level')
@@ -273,18 +356,17 @@ def on_session_started(session_started_request, session):
     log.debug("on_session_started requestId=%s sessionId=%s", session_started_request['requestId'], session['sessionId'])
 
 
-def on_launch(launch_request, session):
+def on_launch(launch_request, session_attributes):
     """ Called when the user launches the skill without specifying what they want """
 
-    log.debug("on_launch requestId= %s, sessionId=%s", launch_request['requestId'], session['sessionId'])
-    # Dispatch to your skill's launch
-    return welcome_intent()
+    log.debug("on_launch requestId= %s", launch_request['requestId'])
+    return welcome_intent(session_attributes)
 
 
-def on_intent(intent_request, session):
+def on_intent(intent_request, session_attributes):
     """ Called when the user specifies an intent for this skill """
 
-    log.info("on_intent requestId=%s sessionId=%s", intent_request['requestId'], session['sessionId'])
+    log.info("on_intent requestId=%s", intent_request['requestId'])
 
     intent = intent_request['intent']
     intent_name = intent_request['intent']['name']
@@ -292,20 +374,20 @@ def on_intent(intent_request, session):
 
     # Dispatch to your skill's intent handlers
     if intent_name == "set_volume":
-        return set_volume(intent, session)
+        return set_volume(intent, session_attributes)
     elif intent_name == "select_input":
-        return select_input(intent, session)
+        return select_input(intent, session_attributes)
     elif intent_name == "query_volume":
-        return query_volume(intent, session)
+        return query_volume(intent, session_attributes)
     elif intent_name == "relative_volume":
-        return relative_volume(intent, session)
+        return relative_volume(intent, session_attributes)
     elif intent_name == "power_control":
-        return power_control(intent, session)
+        return power_control(intent, session_attributes)
 
     elif intent_name == "AMAZON.HelpIntent":
-        return welcome_intent()
+        return welcome_intent(session_attributes)
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
-        return cancel_intent()
+        return cancel_intent(session_attributes)
     else:
         log.error("UNKNOWN INTENT: %s", intent_name)
         raise ValueError("Invalid intent")
@@ -322,8 +404,12 @@ def on_session_ended(session_ended_request, session):
 # --------------- Main handler ------------------
 
 def lambda_handler(event, context):
-    log.debug("lambda_handler: event: %s", event)
+    log.debug("LAMBDA_HANDLER: event: %s", event)
     log.debug("lambda_handler: event.session.application.applicationId=%s", event['session']['application']['applicationId'])
+
+
+    session_attributes = event['session'].get('attributes', {})
+    log.debug("keep_baker_open %s", keep_baker_open(session_attributes))
 
     global thing_name
     thing_name = environ.get('BAKERHOUSE_IOT_THING')
@@ -348,15 +434,14 @@ def lambda_handler(event, context):
             raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
-        on_session_started({'requestId': event['request']['requestId']},
-                           event['session'])
+        on_session_started({'requestId': event['request']['requestId']}, event['session'])
 
     log.debug("TYPE: %s", event['request']['type'])
 
     if event['request']['type'] == "LaunchRequest":
-        return on_launch(event['request'], event['session'])
+        return on_launch(event['request'], session_attributes)
     elif event['request']['type'] == "IntentRequest":
-        return on_intent(event['request'], event['session'])
+        return on_intent(event['request'], session_attributes)
     elif event['request']['type'] == "SessionEndedRequest":
         return on_session_ended(event['request'], event['session'])
 
