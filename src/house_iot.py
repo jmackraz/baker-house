@@ -8,15 +8,13 @@ from os import environ
 import requests
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
-# logging
-log = logging.getLogger("house_iot")
-log.setLevel(logging.INFO)
-streamHandler = logging.StreamHandler()
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-streamHandler.setFormatter(formatter)
-log.addHandler(streamHandler)
 
+FORMAT = '%(asctime)-10s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s'
+#FORMAT = '%(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(format=FORMAT)
+logging.getLogger(None).setLevel(logging.INFO)
+
+log = logging.getLogger("house_iot")
 
 # config from environment
 host_env_var="BAKERHOUSE_ENDPOINT"
