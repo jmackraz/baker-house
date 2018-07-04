@@ -178,8 +178,11 @@ class OnkyoRemoteControl:
 
                     # CAN do a query when it's off without timing out, so
                     # do this to get freshest state
-                    response = receiver.command('system-power', ['query'], zone='main')
-                    self._update_from_response(response)
+                    try:
+                        response = receiver.command('system-power', ['query'], zone='main')
+                        self._update_from_response(response)
+                    except AssertionError as error:
+                        log.warn('caught exception from eiscp')
                 else:
                     response = receiver.command('system-power', [new_power_state], zone='main')
                     self._update_from_response(response)
@@ -240,13 +243,11 @@ class OnkyoRemoteControl:
                 self._update_last_modify_time()
 
         if 'system-power' in msg:
-            if _CONTROL['power'] != msg['system-power']:
-                log.info("current power statue: %s", msg['system-power'])
-                if 'off' in msg['system-power']:
-                    _CONTROL['power'] = 'off'
-                else:
-                    _CONTROL['power'] = 'on'
-
+            new_power_state = 'off' if 'off' in msg['system-power'] else 'on'
+            log.debug("new power state: %s, current state: %s", new_power_state, msg['system-power'])
+            if _CONTROL['power'] != new_power_state:
+                log.info("changing power state to: %s", new_power_state)
+                _CONTROL['power'] = new_power_state
                 self._update_last_modify_time()
 
 
