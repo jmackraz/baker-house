@@ -25,6 +25,13 @@ log = logging.getLogger(__name__)
 from pyramid.config import Configurator
 
 def create_wsgi_app(global_config, **settings):
+    
+
+    #log.debug("debug level logging enabled")
+    #log.info("info level logging enabled")
+    #log.warning("warning level logging enabled")
+    #log.error("error level logging enabled")
+
     config = Configurator(settings=settings)
     config.include("cornice")
     config.include('cornice_swagger')
@@ -113,7 +120,7 @@ class OnkyoRemoteControl:
                 _RECEIVER_IP = receivers[0].host
                 log.debug("receiver discovered at: %s", _RECEIVER_IP)
             else:
-                log.warn("no receivers found. timeout was: %s", timeout)
+                log.warning("no receivers found. timeout was: %s", timeout)
 
         # initialize with fake values
         global _CONTROL
@@ -259,6 +266,9 @@ def openAPI_spec(request):
 # run this baby
 if __name__ == "__main__":
     # execute only if run as a script
-    #
-    logging.getLogger('waitress').setLevel(logging.INFO)
+    
+    #FORMAT = '%(asctime)-15s  %(message)s'
+    FORMAT = '%(asctime)-10s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s'
+    logging.basicConfig(format=FORMAT)
+    logging.getLogger(None).setLevel(logging.INFO)
     serve(create_wsgi_app(None), listen='*:6543')
