@@ -1,0 +1,7 @@
+sessionname homeauto_session
+defshell -bash
+shell -$SHELL
+
+setenv SCRIPT_DIR "$HOME/p/baker-house/scripts"
+screen -t house_hub bash $SCRIPT_DIR/start_house_hub
+screen -t house_iot bash $SCRIPT_DIR/start_house_iot

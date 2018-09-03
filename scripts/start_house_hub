@@ -1,0 +1,9 @@
+# startup house_iot service in virtualenv
+export WORKON_HOME=$HOME/.venv
+source /usr/local/bin/virtualenvwrapper.sh
+export PROJECT_HOME=$HOME/p
+
+workon pi_hub
+source setup_environment.sh
+env PYTHONPATH="src" pserve --reload house_hub_paste.ini
+
