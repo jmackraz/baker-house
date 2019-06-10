@@ -1,14 +1,11 @@
 #!/bin/bash
 
 
-echo checking for homeauto screen session
-
 screen -ls | grep -q homeauto 
 if [ $? -eq 0 ]
 then
-    echo "screen session running"
+    echo "homeauto screen session running $(date)"
 else
-    echo start screen session
+    echo start homeauto screen session $(date)
     (cd /home/pi/p/baker-house; screen -S bakerhouse -d -m -c /home/pi/p/baker-house/scripts/homeautoscreenrc )
-    echo session started
 fi
